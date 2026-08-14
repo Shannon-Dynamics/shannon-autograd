@@ -1,0 +1,34 @@
+shannon-autograd
+Copyright 2026 shannon-autograd contributors
+
+This product depends on and includes concepts derived from the following
+Apache-2.0 licensed projects. Their copyright notices are retained:
+
+  cuda-oxide — Copyright 2024-2026 NVIDIA CORPORATION
+    https://github.com/NVlabs/cuda-oxide
+    Direct dependency: the rustc→PTX compiler backend (rustc_codegen_cuda),
+    the cargo-oxide build tool, and the cuda-host/cuda-device runtime crates.
+
+  NVIDIA Warp — Copyright (c) 2022 NVIDIA CORPORATION & AFFILIATES.
+  All rights reserved.
+    https://github.com/NVIDIA/warp
+    Prior art and benchmark baseline. The following files contain algorithms
+    or workload structure derived from Warp sources (see per-file derivation
+    headers for specifics):
+      shannon-core/src/mesh.rs                  (native/intersect.h, native/mesh.h)
+      shannon-examples/src/bin/mesh_sim.rs   (examples/core/example_mesh.py)
+      shannon-autodiff/src/optim.rs             (_src/optim/adam.py, _src/optim/sgd.py)
+    Benchmark comparisons against Warp in docs/RESULTS.md were run with the
+    unmodified warp-lang 1.13.0 pip wheel on the same machine; hardware,
+    versions, and methodology are stated beside every number.
+
+shannon-autograd is an original Rust SDK; it is not affiliated with, endorsed
+by, or a product of NVIDIA. "Warp" and "NVIDIA" are used solely to identify
+prior art and benchmark baselines.
+
+Test assets (see assets/README.md for details):
+  assets/car.obj — sedan from the Kenney Car Kit (kenney.nl); licensed CC0
+    (public domain). Converted/densified for this repository.
+  assets/cat.obj — by billyd (thingiverse.com/thing:1565405), remeshed by
+    odedstein/meshes; licensed CC BY 4.0.
+  assets/robot.obj — original, procedurally generated for this repository.

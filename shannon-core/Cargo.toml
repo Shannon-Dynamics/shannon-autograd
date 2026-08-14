@@ -1,0 +1,18 @@
+[package]
+name = "shannon-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+libm = { workspace = true }
+# Optional, default OFF: DeviceCopy marker impls ONLY — no calls, no code.
+# Safe against device codegen (collector is per-callee, not per-dependency);
+# evidence table in Day-2 plan §3.3.
+cuda-core = { workspace = true, optional = true }
+# NOTHING ELSE. Adding a dependency here needs a deliberate decision —
+# this crate compiles for BOTH host and device (see Day-1 plan §3/§5.3).
+
+[features]
+default = []
+cuda = ["dep:cuda-core"]

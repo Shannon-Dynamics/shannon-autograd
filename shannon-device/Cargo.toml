@@ -1,0 +1,9 @@
+[package]
+name = "shannon-device"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+shannon-core = { workspace = true }
+cuda-device  = { workspace = true }

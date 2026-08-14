@@ -1,0 +1,16 @@
+[package]
+name = "shannon-autodiff"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+shannon-core = { workspace = true }
+anyhow = { workspace = true }
+
+[dev-dependencies]
+# Host-only test plumbing: HostGrad sinks live in shannon-rt, the CPU backend
+# adapters in shannon-cpu. Dev-deps create no cycle and no GPU requirement —
+# everything here compiles host-side (the Day-4/5 convention).
+shannon-rt = { workspace = true }
+shannon-cpu = { workspace = true }

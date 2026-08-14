@@ -1,0 +1,36 @@
+[workspace]
+resolver = "3"
+members = [
+    "shannon-core",
+    "shannon-device",
+    "shannon-rt",
+    "shannon-autodiff",
+    "shannon-spatial",
+    "shannon-kernels",
+    "shannon-cpu",
+    "shannon-examples",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+# cuda-oxide — local clone, already validated by `cargo oxide doctor`.
+# (Upstream template uses git deps; path deps pin us to the verified tree.)
+cuda-device = { path = "../cuda-oxide/crates/cuda-device" }
+cuda-host   = { path = "../cuda-oxide/crates/cuda-host" }
+cuda-core   = { path = "../cuda-oxide/crates/cuda-core" }
+
+shannon-core     = { path = "shannon-core" }
+shannon-device   = { path = "shannon-device" }
+shannon-rt       = { path = "shannon-rt" }
+shannon-autodiff = { path = "shannon-autodiff" }
+shannon-spatial  = { path = "shannon-spatial" }
+shannon-kernels  = { path = "shannon-kernels" }
+shannon-cpu      = { path = "shannon-cpu" }
+
+libm   = "0.2"
+rayon  = "1.10"
+anyhow = "1"

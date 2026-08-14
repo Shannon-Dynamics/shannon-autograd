@@ -1,0 +1,12 @@
+[package]
+name = "shannon-spatial"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# shannon-core's `cuda` feature (DeviceCopy for BvhNode) arrives via feature
+# unification: shannon-rt → shannon-kernels enables it. Day-4 plan §5.3.
+shannon-core = { workspace = true }
+shannon-rt   = { workspace = true }
+anyhow       = { workspace = true }

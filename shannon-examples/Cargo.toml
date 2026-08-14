@@ -1,0 +1,22 @@
+[package]
+name = "shannon-examples"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+default-run = "affine"
+
+[dependencies]
+shannon-core     = { workspace = true }
+shannon-kernels  = { workspace = true }
+shannon-cpu      = { workspace = true }
+shannon-rt       = { workspace = true }
+shannon-autodiff = { workspace = true }
+shannon-spatial  = { workspace = true }
+cuda-core        = { workspace = true }
+anyhow           = { workspace = true }
+# Windowing for the real-time demo only — kept out of every 📦 shipped crate.
+minifb           = "0.28"
+
+[[bin]]
+name = "affine"
+path = "src/bin/affine.rs"

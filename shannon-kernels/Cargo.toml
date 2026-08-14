@@ -1,0 +1,16 @@
+[package]
+# ⚠️ This string is the PTX bundle lookup key (`load_named(ctx, CARGO_PKG_NAME)`).
+# Renaming the package breaks `kernels::load()` at runtime. Day-1 plan §4.3.
+name = "shannon-kernels"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# `cuda` explicit (not incidental via feature unification): bench structs
+# hold Vec3/Mat33 fields whose DeviceCopy impls live behind this feature.
+shannon-core   = { workspace = true, features = ["cuda"] }
+shannon-device = { workspace = true }   # ← the grad sinks, imported not defined
+cuda-device    = { workspace = true }
+cuda-core      = { workspace = true }
+cuda-host      = { workspace = true }

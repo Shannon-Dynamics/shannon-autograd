@@ -1,0 +1,13 @@
+[package]
+name = "shannon-rt"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# `cuda` feature: DeviceCopy impls for Vec3 etc., so Array<Vec3> compiles.
+shannon-core    = { workspace = true, features = ["cuda"] }
+shannon-kernels = { workspace = true }
+cuda-core       = { workspace = true }
+cuda-host       = { workspace = true }
+anyhow          = { workspace = true }

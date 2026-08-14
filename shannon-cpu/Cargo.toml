@@ -1,0 +1,12 @@
+[package]
+name = "shannon-cpu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+shannon-core = { workspace = true }
+shannon-rt   = { workspace = true }   # ← HostGradF32, imported not defined
+rayon        = { workspace = true }
+# W4 bench struct types — both crates are 🧪 examples, no ship-boundary issue.
+shannon-kernels = { workspace = true }
