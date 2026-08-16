@@ -18,7 +18,11 @@ pub fn grid(n: usize, extent: f32) -> (Vec<Vec3>, Vec<i32>) {
     let mut points = Vec::with_capacity((n + 1) * (n + 1));
     for iz in 0..=n {
         for ix in 0..=n {
-            points.push(Vec3::new(-extent + ix as f32 * step, 0.0, -extent + iz as f32 * step));
+            points.push(Vec3::new(
+                -extent + ix as f32 * step,
+                0.0,
+                -extent + iz as f32 * step,
+            ));
         }
     }
     let vid = |ix: usize, iz: usize| (iz * (n + 1) + ix) as i32;
@@ -109,14 +113,21 @@ pub fn icosphere(subdiv: u32, radius: f32) -> (Vec<Vec3>, Vec<i32>) {
 /// Parametric torus: nu major × nv minor segments, both wrapped —
 /// V = nu·nv, F = 2·nu·nv, χ = 0. Major radius `big_r`, tube radius `small_r`.
 pub fn torus(nu: usize, nv: usize, big_r: f32, small_r: f32) -> (Vec<Vec3>, Vec<i32>) {
-    assert!(nu >= 3 && nv >= 3, "torus needs at least 3 segments per direction");
+    assert!(
+        nu >= 3 && nv >= 3,
+        "torus needs at least 3 segments per direction"
+    );
     let mut points = Vec::with_capacity(nu * nv);
     for iu in 0..nu {
         let theta = TAU * iu as f32 / nu as f32; // major angle
         for iv in 0..nv {
             let phi = TAU * iv as f32 / nv as f32; // minor angle
             let ring = big_r + small_r * phi.cos();
-            points.push(Vec3::new(ring * theta.cos(), small_r * phi.sin(), ring * theta.sin()));
+            points.push(Vec3::new(
+                ring * theta.cos(),
+                small_r * phi.sin(),
+                ring * theta.sin(),
+            ));
         }
     }
     let vid = |iu: usize, iv: usize| ((iu % nu) * nv + (iv % nv)) as i32;

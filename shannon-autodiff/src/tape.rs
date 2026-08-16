@@ -42,7 +42,10 @@ pub struct Tape<'a> {
 
 impl<'a> Tape<'a> {
     pub fn new() -> Self {
-        Self { records: Vec::new(), paused: false }
+        Self {
+            records: Vec::new(),
+            paused: false,
+        }
     }
 
     /// Record one adjoint replay. No-op while paused.
@@ -53,7 +56,11 @@ impl<'a> Tape<'a> {
         replay: impl Fn() -> anyhow::Result<()> + 'a,
     ) {
         if !self.paused {
-            self.records.push(LaunchRecord { label, dim, replay: Box::new(replay) });
+            self.records.push(LaunchRecord {
+                label,
+                dim,
+                replay: Box::new(replay),
+            });
         }
     }
 
@@ -89,8 +96,7 @@ impl<'a> Tape<'a> {
     /// tape; on return every borrow the records held has ended.
     pub fn backward(self) -> anyhow::Result<()> {
         for rec in self.records.iter().rev() {
-            (rec.replay)()
-                .map_err(|e| anyhow::anyhow!("backward of `{}`: {e:?}", rec.label))?;
+            (rec.replay)().map_err(|e| anyhow::anyhow!("backward of `{}`: {e:?}", rec.label))?;
         }
         Ok(())
     }

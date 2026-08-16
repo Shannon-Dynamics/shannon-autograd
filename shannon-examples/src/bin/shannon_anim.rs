@@ -14,10 +14,14 @@
 //!   --width W --height H   resolution (default 960×540)
 
 use anyhow::Result;
-use shannon_core::scene_shannon::{ARM_L1, ARM_L2, ARM_SHOULDER, CAM_TILT, H_SLOT, LETTER_HH, LETTER_Y, LETTER_Z, SLOT_X, TABLE_TOP_Y};
+use shannon_core::scene_shannon::{
+    ARM_L1, ARM_L2, ARM_SHOULDER, CAM_TILT, H_SLOT, LETTER_HH, LETTER_Y, LETTER_Z, SLOT_X,
+    TABLE_TOP_Y,
+};
 use shannon_core::{Quat, Vec3};
 use shannon_examples::image;
-use shannon_rt::{Array, launch};
+use shannon_kernels::launch;
+use shannon_rt::Array;
 use std::time::Instant;
 
 // ── Host-side animation helpers ─────────────────────────────────────────────
@@ -60,12 +64,17 @@ fn ik(target: Vec3) -> (Vec3, Vec3) {
     dir = dir.normalize();
     let t_eff = s0 + dir * dist;
 
-    let cos_a = ((ARM_L1 * ARM_L1 + dist * dist - ARM_L2 * ARM_L2) / (2.0 * ARM_L1 * dist)).clamp(-1.0, 1.0);
+    let cos_a = ((ARM_L1 * ARM_L1 + dist * dist - ARM_L2 * ARM_L2) / (2.0 * ARM_L1 * dist))
+        .clamp(-1.0, 1.0);
     let a = cos_a.acos();
 
     let up = Vec3::new(0.0, 1.0, 0.0);
     let raw_axis = dir.cross(up);
-    let axis = if raw_axis.length_sq() > 1.0e-6 { raw_axis.normalize() } else { Vec3::new(1.0, 0.0, 0.0) };
+    let axis = if raw_axis.length_sq() > 1.0e-6 {
+        raw_axis.normalize()
+    } else {
+        Vec3::new(1.0, 0.0, 0.0)
+    };
     let elbow_dir = Quat::from_axis_angle(axis, -a).rotate(dir); // −a ⇒ elbow up
     let s1 = s0 + elbow_dir * ARM_L1;
     (s1, t_eff)
@@ -78,13 +87,18 @@ const LOOP_T: f32 = 16.0;
 /// Where the H rests when dropped: flat on the tabletop, in front of the row.
 fn drop_pose() -> (Vec3, Quat) {
     let pos = Vec3::new(-0.50, TABLE_TOP_Y + 0.035, 0.30);
-    let rot = Quat::from_axis_angle(Vec3::new(0.0, 1.0, 0.0), 0.35)
-        .mul(Quat::from_axis_angle(Vec3::new(1.0, 0.0, 0.0), -core::f32::consts::FRAC_PI_2));
+    let rot = Quat::from_axis_angle(Vec3::new(0.0, 1.0, 0.0), 0.35).mul(Quat::from_axis_angle(
+        Vec3::new(1.0, 0.0, 0.0),
+        -core::f32::consts::FRAC_PI_2,
+    ));
     (pos, rot)
 }
 
 fn slot_pose() -> (Vec3, Quat) {
-    (Vec3::new(SLOT_X[H_SLOT], LETTER_Y, LETTER_Z), Quat::IDENTITY)
+    (
+        Vec3::new(SLOT_X[H_SLOT], LETTER_Y, LETTER_Z),
+        Quat::IDENTITY,
+    )
 }
 
 struct Frame {
@@ -160,13 +174,22 @@ fn pose(t: f32) -> Frame {
         let u = smooth((t - 7.8) / 0.8);
         h_pos = h_slot;
         h_rot = r_slot;
-        wrist = lerp3(wrist_for_held(h_slot, r_slot) + Vec3::new(0.0, 0.3, 0.0), wave_base, u);
+        wrist = lerp3(
+            wrist_for_held(h_slot, r_slot) + Vec3::new(0.0, 0.3, 0.0),
+            wave_base,
+            u,
+        );
     } else if t < 11.4 {
         // WAVE to the camera.
         let u = t - 8.6;
         h_pos = h_slot;
         h_rot = r_slot;
-        wrist = wave_base + Vec3::new(0.38 * (u * 2.0 * core::f32::consts::PI * 0.9).sin(), 0.0, 0.0);
+        wrist = wave_base
+            + Vec3::new(
+                0.38 * (u * 2.0 * core::f32::consts::PI * 0.9).sin(),
+                0.0,
+                0.0,
+            );
         grip = 0.15;
     } else if t < 12.4 {
         // BUMP: the retract path deliberately clips the H's top corner.
@@ -193,12 +216,23 @@ fn pose(t: f32) -> Frame {
         let (hp, hr) = fall(h_slot, r_slot, h_drop, r_drop, v);
         h_pos = hp;
         h_rot = hr;
-        wrist = lerp3(Vec3::new(SLOT_X[H_SLOT] + 0.10, LETTER_Y + 0.16, LETTER_Z + 0.08), home, smooth((t - 12.4) / 1.2));
+        wrist = lerp3(
+            Vec3::new(SLOT_X[H_SLOT] + 0.10, LETTER_Y + 0.16, LETTER_Z + 0.08),
+            home,
+            smooth((t - 12.4) / 1.2),
+        );
     }
 
     let (s1, s2) = ik(wrist);
     let grip_dir = (s2 - s1).normalize();
-    Frame { s1, s2, grip_dir, grip, h_pos, h_rot }
+    Frame {
+        s1,
+        s2,
+        grip_dir,
+        grip,
+        h_pos,
+        h_rot,
+    }
 }
 
 /// The H topples off the front edge back to its drop pose. `u` in 0..1+.
@@ -207,18 +241,37 @@ fn fall(from_p: Vec3, from_r: Quat, to_p: Vec3, to_r: Quat, u: f32) -> (Vec3, Qu
     let ease = u * u; // accelerating — reads as gravity
     // Horizontal travel linear-ish, vertical with a small pop then drop.
     let mut p = lerp3(from_p, to_p, u);
-    p.y = from_p.y + (to_p.y - from_p.y) * ease + 0.18 * (u * core::f32::consts::PI).sin() * (1.0 - u);
+    p.y = from_p.y
+        + (to_p.y - from_p.y) * ease
+        + 0.18 * (u * core::f32::consts::PI).sin() * (1.0 - u);
     (p, nlerp(from_r, to_r, smooth(ease)))
 }
 
 // ── Rendering plumbing ──────────────────────────────────────────────────────
 
-fn render(frame: &Frame, cam_rot: Quat, w: u32, h: u32, pixels: &mut Array<Vec3>) -> Result<Vec<Vec3>> {
+fn render(
+    frame: &Frame,
+    cam_rot: Quat,
+    w: u32,
+    h: u32,
+    pixels: &mut Array<Vec3>,
+) -> Result<Vec<Vec3>> {
     let n = (w * h) as usize;
     launch!(
         draw_shannon,
         dim = n,
-        (frame.s1, frame.s2, frame.grip_dir, frame.grip, frame.h_pos, frame.h_rot, cam_rot, w, h, &mut *pixels)
+        (
+            frame.s1,
+            frame.s2,
+            frame.grip_dir,
+            frame.grip,
+            frame.h_pos,
+            frame.h_rot,
+            cam_rot,
+            w,
+            h,
+            &mut *pixels
+        )
     )?;
     pixels.to_vec()
 }
@@ -231,7 +284,12 @@ struct Args {
 }
 
 fn parse_args() -> Args {
-    let mut a = Args { width: 960, height: 540, frames: None, still: None };
+    let mut a = Args {
+        width: 960,
+        height: 540,
+        frames: None,
+        still: None,
+    };
     let argv: Vec<String> = std::env::args().collect();
     let mut i = 1;
     while i < argv.len() {
@@ -249,7 +307,10 @@ fn parse_args() -> Args {
                 i += 2;
             }
             "--still" => {
-                a.still = Some((argv[i + 1].parse().expect("--still <t> <name>"), argv[i + 2].clone()));
+                a.still = Some((
+                    argv[i + 1].parse().expect("--still <t> <name>"),
+                    argv[i + 2].clone(),
+                ));
                 i += 3;
             }
             "--parity" => i += 1,
@@ -285,12 +346,32 @@ fn main() -> Result<()> {
         launch!(
             draw_shannon,
             dim = pn,
-            (frame.s1, frame.s2, frame.grip_dir, frame.grip, frame.h_pos, frame.h_rot, cam_rot, PW, PH, &mut small)
+            (
+                frame.s1,
+                frame.s2,
+                frame.grip_dir,
+                frame.grip,
+                frame.h_pos,
+                frame.h_rot,
+                cam_rot,
+                PW,
+                PH,
+                &mut small
+            )
         )?;
         let a = small.to_vec()?;
         let mut b = vec![Vec3::ZERO; pn];
         shannon_cpu::draw_shannon(
-            frame.s1, frame.s2, frame.grip_dir, frame.grip, frame.h_pos, frame.h_rot, cam_rot, PW, PH, &mut b,
+            frame.s1,
+            frame.s2,
+            frame.grip_dir,
+            frame.grip,
+            frame.h_pos,
+            frame.h_rot,
+            cam_rot,
+            PW,
+            PH,
+            &mut b,
         );
         let (mut worst, mut over) = (0.0f32, 0usize);
         for i in 0..pn {
@@ -302,9 +383,15 @@ fn main() -> Result<()> {
             }
         }
         // Same robust criterion as W1 (Day-2 plan): branch-boundary pixels may differ.
-        assert!(over as f32 / pn as f32 <= 0.005, "{over}/{pn} pixels exceed 1e-3");
+        assert!(
+            over as f32 / pn as f32 <= 0.005,
+            "{over}/{pn} pixels exceed 1e-3"
+        );
         assert!(worst <= 5e-2, "worst channel delta {worst}");
-        println!("✓ CPU == GPU at {PW}×{PH} ({:.2}% >1e-3, worst {worst:.2e})", 100.0 * over as f32 / pn as f32);
+        println!(
+            "✓ CPU == GPU at {PW}×{PH} ({:.2}% >1e-3, worst {worst:.2e})",
+            100.0 * over as f32 / pn as f32
+        );
         return Ok(());
     }
 
@@ -365,7 +452,10 @@ fn main() -> Result<()> {
 
         frames += 1;
         if last_report.elapsed().as_secs_f32() > 2.0 {
-            println!("{:.1} fps", frames as f32 / last_report.elapsed().as_secs_f32());
+            println!(
+                "{:.1} fps",
+                frames as f32 / last_report.elapsed().as_secs_f32()
+            );
             frames = 0;
             last_report = Instant::now();
         }

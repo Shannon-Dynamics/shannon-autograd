@@ -13,7 +13,8 @@
 use anyhow::Result;
 use shannon_core::{Mat33, Vec3};
 use shannon_kernels::bench::{BenchS0, BenchSa, BenchSf, BenchSm, BenchSv, BenchSz};
-use shannon_rt::{Array, Device, GpuTimer, ScopedTimer, launch};
+use shannon_kernels::launch;
+use shannon_rt::{Array, Device, GpuTimer, ScopedTimer};
 use std::hint::black_box;
 use std::time::Instant;
 
@@ -116,15 +117,30 @@ fn main() -> Result<()> {
     let sf = BenchSf { x, y, z };
     let sv = BenchSv { u, v, w };
     let sm = BenchSm { m, n: m, o: m };
-    let sa = BenchSa { a: pa, a_len: 1, b: pb, b_len: 1, c: pc, c_len: 1 };
+    let sa = BenchSa {
+        a: pa,
+        a_len: 1,
+        b: pb,
+        b_len: 1,
+        c: pc,
+        c_len: 1,
+    };
     let sz = BenchSz {
-        a: pa, a_len: 1, b: pb, b_len: 1, c: pc, c_len: 1,
-        x, y, z, u, v, w,
+        a: pa,
+        a_len: 1,
+        b: pb,
+        b_len: 1,
+        c: pc,
+        c_len: 1,
+        x,
+        y,
+        z,
+        u,
+        v,
+        w,
     };
 
-    println!(
-        "Launch-overhead benchmark — {launches} launches/cell, median of {reps} reps\n"
-    );
+    println!("Launch-overhead benchmark — {launches} launches/cell, median of {reps} reps\n");
 
     // ── The six shapes ─────────────────────────────────────────────────────
     // Each closure is one launch through the REAL user-facing path.
@@ -139,7 +155,12 @@ fn main() -> Result<()> {
                 "  {:<4} cpu {:>8.1} ns   gpu direct {:>7.2} µs   gpu struct {:>7.2} µs",
                 $shape, cpu_ns, gpu_direct_us, gpu_struct_us
             );
-            rows.push(Row { shape: $shape, cpu_ns, gpu_direct_us, gpu_struct_us });
+            rows.push(Row {
+                shape: $shape,
+                cpu_ns,
+                gpu_direct_us,
+                gpu_struct_us,
+            });
         }};
     }
 
@@ -202,14 +223,19 @@ fn main() -> Result<()> {
             r.shape, r.cpu_ns, r.gpu_direct_us, r.gpu_struct_us
         );
     }
-    println!("\nbench_k0 device-side execution (CudaEvent, 1000 launches): {device_us:.2} µs/kernel");
+    println!(
+        "\nbench_k0 device-side execution (CudaEvent, 1000 launches): {device_us:.2} µs/kernel"
+    );
 
     // ── Sanity assertions — bounds only, never performance gates ───────────
     for r in &rows {
         assert!(
-            r.cpu_ns.is_finite() && r.cpu_ns > 0.0
-                && r.gpu_direct_us.is_finite() && r.gpu_direct_us > 0.0
-                && r.gpu_struct_us.is_finite() && r.gpu_struct_us > 0.0,
+            r.cpu_ns.is_finite()
+                && r.cpu_ns > 0.0
+                && r.gpu_direct_us.is_finite()
+                && r.gpu_direct_us > 0.0
+                && r.gpu_struct_us.is_finite()
+                && r.gpu_struct_us > 0.0,
             "non-finite or zero median in row {}",
             r.shape
         );

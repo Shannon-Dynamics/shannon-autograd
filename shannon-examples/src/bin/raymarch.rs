@@ -5,7 +5,8 @@
 
 use anyhow::Result;
 use shannon_core::{Quat, Vec3};
-use shannon_rt::{Array, launch};
+use shannon_kernels::launch;
+use shannon_rt::Array;
 use std::time::Instant;
 
 const CAM_POS: Vec3 = Vec3::new(-1.25, 1.0, 2.0);
@@ -59,7 +60,11 @@ fn main() -> Result<()> {
     // ---- GPU render at full resolution ------------------------------------
     let mut pixels = Array::<Vec3>::zeros(n)?;
     let t0 = Instant::now();
-    launch!(draw, dim = n, (CAM_POS, cam_rot, width, height, &mut pixels))?;
+    launch!(
+        draw,
+        dim = n,
+        (CAM_POS, cam_rot, width, height, &mut pixels)
+    )?;
     let gpu = pixels.to_vec()?; // implicitly synchronizes
     println!("GPU render {width}×{height}: {:?}", t0.elapsed());
 
@@ -101,7 +106,10 @@ fn main() -> Result<()> {
         over_frac <= 0.005,
         "CPU/GPU divergence: {over_tol}/{pn} pixels exceed 1e-3 (> 0.5%)"
     );
-    assert!(worst <= 5e-2, "CPU/GPU divergence: worst channel delta {worst}");
+    assert!(
+        worst <= 5e-2,
+        "CPU/GPU divergence: worst channel delta {worst}"
+    );
     println!(
         "✓ CPU == GPU at {PW}×{PH} ({:.2}% of pixels >1e-3, worst {worst:.2e})",
         over_frac * 100.0
@@ -110,7 +118,10 @@ fn main() -> Result<()> {
     // Sanity: both branches of the shader are exercised at parity resolution.
     let sky = Vec3::new(0.4, 0.45, 0.5) * 1.5;
     let skies = a.iter().filter(|c| (**c - sky).length() <= 1e-6).count();
-    assert!(skies > 0 && skies < pn, "expected both sky and geometry; sky = {skies}/{pn}");
+    assert!(
+        skies > 0 && skies < pn,
+        "expected both sky and geometry; sky = {skies}/{pn}"
+    );
     println!("✓ scene shows geometry and sky ({skies}/{pn} sky pixels)");
 
     println!("\n✅ RAYMARCH ACCEPTANCE PASSED");

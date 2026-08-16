@@ -66,14 +66,27 @@ fn chain_matches_finite_differences() {
     let (gx, loss) = run_chain(&x);
 
     let f = |v: &[f32]| -> f32 { v.iter().map(|&a| (a * SCALE + BIAS).sin()).sum() };
-    assert!((loss - f(&x)).abs() < 1e-5, "forward chain disagrees: {loss} vs {}", f(&x));
+    assert!(
+        (loss - f(&x)).abs() < 1e-5,
+        "forward chain disagrees: {loss} vs {}",
+        f(&x)
+    );
 
     let fd = grad_fd(&f, &x, 1e-3);
     for i in 0..N {
         // Analytic: d/dx sin(2x + 0.5) = 2·cos(2x + 0.5) — check both ways.
         let analytic = SCALE * (x[i] * SCALE + BIAS).cos();
-        assert!((gx[i] - analytic).abs() < 1e-5, "i={i}: tape {} vs analytic {analytic}", gx[i]);
-        assert!((gx[i] - fd[i]).abs() < 1e-3, "i={i}: tape {} vs fd {}", gx[i], fd[i]);
+        assert!(
+            (gx[i] - analytic).abs() < 1e-5,
+            "i={i}: tape {} vs analytic {analytic}",
+            gx[i]
+        );
+        assert!(
+            (gx[i] - fd[i]).abs() < 1e-3,
+            "i={i}: tape {} vs fd {}",
+            gx[i],
+            fd[i]
+        );
     }
 }
 
@@ -89,7 +102,10 @@ fn backward_runs_in_reverse() {
             Ok(())
         });
     }
-    assert_eq!(tape.labels().collect::<Vec<_>>(), ["first", "second", "third"]);
+    assert_eq!(
+        tape.labels().collect::<Vec<_>>(),
+        ["first", "second", "third"]
+    );
     tape.backward().unwrap();
     assert_eq!(log.into_inner(), ["third", "second", "first"]);
 }
@@ -157,5 +173,8 @@ fn backward_propagates_record_errors_with_label() {
     let mut tape = Tape::new();
     tape.record("exploder", 1, || Err(anyhow::anyhow!("boom")));
     let err = tape.backward().unwrap_err().to_string();
-    assert!(err.contains("exploder"), "error must name the record: {err}");
+    assert!(
+        err.contains("exploder"),
+        "error must name the record: {err}"
+    );
 }

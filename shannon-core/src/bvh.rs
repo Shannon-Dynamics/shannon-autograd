@@ -95,7 +95,13 @@ pub struct AabbQuery<'a> {
 pub fn query_aabb(nodes: &[BvhNode], lo: Vec3, hi: Vec3) -> AabbQuery<'_> {
     // stack[0] starts as 0 — the root index — so a non-empty tree only sets sp.
     let sp = usize::from(!nodes.is_empty());
-    AabbQuery { nodes, stack: [0; BVH_STACK], sp, lo, hi }
+    AabbQuery {
+        nodes,
+        stack: [0; BVH_STACK],
+        sp,
+        lo,
+        hi,
+    }
 }
 
 impl Iterator for AabbQuery<'_> {
@@ -141,7 +147,14 @@ pub struct RayQuery<'a> {
 #[inline(always)]
 pub fn query_ray(nodes: &[BvhNode], origin: Vec3, dir: Vec3, t_max: f32) -> RayQuery<'_> {
     let sp = usize::from(!nodes.is_empty());
-    RayQuery { nodes, stack: [0; BVH_STACK], sp, origin, inv: inv_dir(dir), t_max }
+    RayQuery {
+        nodes,
+        stack: [0; BVH_STACK],
+        sp,
+        origin,
+        inv: inv_dir(dir),
+        t_max,
+    }
 }
 
 impl Iterator for RayQuery<'_> {

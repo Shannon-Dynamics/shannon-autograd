@@ -47,8 +47,8 @@ fn ground_normal_points_up() {
 fn normals_are_unit_length() {
     for p in [
         Vec3::new(4.0, -1.0, 4.0),
-        Vec3::new(0.0, 0.5, 0.5),   // box surface-ish
-        Vec3::new(0.0, 1.5, 0.0),   // above the carved sphere
+        Vec3::new(0.0, 0.5, 0.5), // box surface-ish
+        Vec3::new(0.0, 1.5, 0.0), // above the carved sphere
     ] {
         let n = scene::normal(p);
         assert!((n.length() - 1.0).abs() <= 1e-3, "at {p:?}: {n:?}");
@@ -90,7 +90,11 @@ fn draw_hits_both_geometry_and_sky() {
     let (mut hits, mut skies) = (0, 0);
     for i in 0..(128 * 64) as usize {
         let c = scene::draw_at(i, cam_pos, cam_rot, 128, 64);
-        if (c - sky).length() <= 1e-6 { skies += 1 } else { hits += 1 }
+        if (c - sky).length() <= 1e-6 {
+            skies += 1
+        } else {
+            hits += 1
+        }
     }
     assert!(hits > 0, "no geometry visible — camera convention wrong?");
     assert!(skies > 0, "no sky visible — camera convention wrong?");

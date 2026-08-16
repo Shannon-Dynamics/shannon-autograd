@@ -27,9 +27,7 @@ pub fn l2_term_at(i: usize, x: &[Vec3], t: &[Vec3]) -> f32 {
 
 /// ∂/∂xᵢ Σ ½‖x − t‖² = (xᵢ − tᵢ)·l̄ — l̄ is loss.grad[0], broadcast.
 #[inline(always)]
-pub fn adj_l2_at<S: GradSink<Vec3>>(
-    i: usize, x: &[Vec3], t: &[Vec3], adj_loss: &[f32], adj_x: &S,
-) {
+pub fn adj_l2_at<S: GradSink<Vec3>>(i: usize, x: &[Vec3], t: &[Vec3], adj_loss: &[f32], adj_x: &S) {
     adj_x.accumulate(i, (x[i] - t[i]) * adj_loss[0]);
 }
 
@@ -41,7 +39,11 @@ pub fn adj_l2_at<S: GradSink<Vec3>>(
 /// `corr[i]` came from an UNTAPED `mesh_query` against the target.
 #[inline(always)]
 pub fn chamfer_ab_term_at(
-    i: usize, src: &[Vec3], corr: &[MeshQuery], tpoints: &[Vec3], tindices: &[i32],
+    i: usize,
+    src: &[Vec3],
+    corr: &[MeshQuery],
+    tpoints: &[Vec3],
+    tindices: &[i32],
 ) -> f32 {
     let q = corr[i];
     if q.face < 0 {
@@ -55,8 +57,13 @@ pub fn chamfer_ab_term_at(
 /// dependence on x contributes exactly zero — no query adjoint needed.
 #[inline(always)]
 pub fn adj_chamfer_ab_at<S: GradSink<Vec3>>(
-    i: usize, src: &[Vec3], corr: &[MeshQuery], tpoints: &[Vec3], tindices: &[i32],
-    adj_loss: &[f32], adj_src: &S,
+    i: usize,
+    src: &[Vec3],
+    corr: &[MeshQuery],
+    tpoints: &[Vec3],
+    tindices: &[i32],
+    adj_loss: &[f32],
+    adj_src: &S,
 ) {
     let q = corr[i];
     if q.face < 0 {
@@ -70,7 +77,11 @@ pub fn adj_chamfer_ab_at<S: GradSink<Vec3>>(
 /// The gradient flows to the source VERTICES through the barycentric weights.
 #[inline(always)]
 pub fn chamfer_ba_term_at(
-    i: usize, tverts: &[Vec3], corr: &[MeshQuery], spoints: &[Vec3], sindices: &[i32],
+    i: usize,
+    tverts: &[Vec3],
+    corr: &[MeshQuery],
+    spoints: &[Vec3],
+    sindices: &[i32],
 ) -> f32 {
     let q = corr[i];
     if q.face < 0 {
@@ -86,8 +97,13 @@ pub fn chamfer_ba_term_at(
 /// be atomic, which is exactly what GradSink guarantees on both backends.
 #[inline(always)]
 pub fn adj_chamfer_ba_at<S: GradSink<Vec3>>(
-    i: usize, tverts: &[Vec3], corr: &[MeshQuery], spoints: &[Vec3], sindices: &[i32],
-    adj_loss: &[f32], adj_spoints: &S,
+    i: usize,
+    tverts: &[Vec3],
+    corr: &[MeshQuery],
+    spoints: &[Vec3],
+    sindices: &[i32],
+    adj_loss: &[f32],
+    adj_spoints: &S,
 ) {
     let q = corr[i];
     if q.face < 0 {

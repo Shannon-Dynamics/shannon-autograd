@@ -5,9 +5,7 @@
 use shannon_core::mesh::{mesh_eval_position, mesh_query_point, triangle_is_sliver};
 use shannon_core::{BvhNode, Vec3};
 use shannon_spatial::shapes::{grid, icosphere, torus};
-use shannon_spatial::{
-    brute_force_closest_point, build_median_split, refit_nodes, triangle_aabbs,
-};
+use shannon_spatial::{brute_force_closest_point, build_median_split, refit_nodes, triangle_aabbs};
 use std::collections::HashSet;
 
 /// Minimal LCG (Knuth MMIX constants), 24-bit mantissa → uniform [0, 1).
@@ -18,7 +16,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
     fn vec3(&mut self) -> Vec3 {
@@ -38,7 +39,11 @@ fn assert_queries_agree(
     indices: &[i32],
     query_point: Vec3,
 ) {
-    assert_eq!(got.face >= 0, brute.face >= 0, "{label}: found-flags diverge");
+    assert_eq!(
+        got.face >= 0,
+        brute.face >= 0,
+        "{label}: found-flags diverge"
+    );
     if got.face < 0 {
         return;
     }
@@ -138,8 +143,11 @@ fn refit_restores_containment() {
 #[test]
 fn cpu_query_matches_brute_force() {
     let mut rng = Lcg::new(42);
-    let meshes =
-        [("icosphere", icosphere(3, 1.0)), ("torus", torus(24, 16, 1.0, 0.35)), ("grid", grid(16, 2.0))];
+    let meshes = [
+        ("icosphere", icosphere(3, 1.0)),
+        ("torus", torus(24, 16, 1.0, 0.35)),
+        ("grid", grid(16, 2.0)),
+    ];
     for (name, (points, indices)) in &meshes {
         let nodes = build_median_split(&triangle_aabbs(points, indices));
         for _ in 0..256 {
@@ -196,9 +204,21 @@ fn euler_characteristic(n_verts: usize, indices: &[i32]) -> i64 {
 fn generators_satisfy_euler() {
     for k in 0..4u32 {
         let (points, indices) = icosphere(k, 1.0);
-        assert_eq!(points.len(), 10 * 4usize.pow(k) + 2, "icosphere V at subdiv {k}");
-        assert_eq!(indices.len() / 3, 20 * 4usize.pow(k), "icosphere F at subdiv {k}");
-        assert_eq!(euler_characteristic(points.len(), &indices), 2, "sphere χ at subdiv {k}");
+        assert_eq!(
+            points.len(),
+            10 * 4usize.pow(k) + 2,
+            "icosphere V at subdiv {k}"
+        );
+        assert_eq!(
+            indices.len() / 3,
+            20 * 4usize.pow(k),
+            "icosphere F at subdiv {k}"
+        );
+        assert_eq!(
+            euler_characteristic(points.len(), &indices),
+            2,
+            "sphere χ at subdiv {k}"
+        );
     }
     let (points, indices) = torus(24, 16, 1.0, 0.35);
     assert_eq!(points.len(), 24 * 16);
@@ -208,7 +228,11 @@ fn generators_satisfy_euler() {
     let (points, indices) = grid(16, 2.0);
     assert_eq!(points.len(), 17 * 17);
     assert_eq!(indices.len() / 3, 2 * 16 * 16);
-    assert_eq!(euler_characteristic(points.len(), &indices), 1, "grid (disk) χ");
+    assert_eq!(
+        euler_characteristic(points.len(), &indices),
+        1,
+        "grid (disk) χ"
+    );
 }
 
 #[test]
@@ -216,14 +240,24 @@ fn icosphere_is_spherical_and_outward() {
     let r = 2.5f32;
     let (points, indices) = icosphere(3, r);
     for p in &points {
-        assert!((p.length() - r).abs() < 1e-5, "vertex off the sphere: |v| = {}", p.length());
+        assert!(
+            (p.length() - r).abs() < 1e-5,
+            "vertex off the sphere: |v| = {}",
+            p.length()
+        );
     }
     for tri in indices.chunks_exact(3) {
-        let (a, b, c) =
-            (points[tri[0] as usize], points[tri[1] as usize], points[tri[2] as usize]);
+        let (a, b, c) = (
+            points[tri[0] as usize],
+            points[tri[1] as usize],
+            points[tri[2] as usize],
+        );
         let normal = (b - a).cross(c - a);
         let centroid = (a + b + c) * (1.0 / 3.0);
-        assert!(normal.dot(centroid) > 0.0, "inward-facing icosphere triangle");
+        assert!(
+            normal.dot(centroid) > 0.0,
+            "inward-facing icosphere triangle"
+        );
     }
 }
 
@@ -231,9 +265,15 @@ fn icosphere_is_spherical_and_outward() {
 fn grid_normals_point_up() {
     let (points, indices) = grid(8, 2.0);
     for tri in indices.chunks_exact(3) {
-        let (a, b, c) =
-            (points[tri[0] as usize], points[tri[1] as usize], points[tri[2] as usize]);
-        assert!((b - a).cross(c - a).y > 0.0, "grid triangle not wound for +y");
+        let (a, b, c) = (
+            points[tri[0] as usize],
+            points[tri[1] as usize],
+            points[tri[2] as usize],
+        );
+        assert!(
+            (b - a).cross(c - a).y > 0.0,
+            "grid triangle not wound for +y"
+        );
     }
 }
 
@@ -241,14 +281,20 @@ fn grid_normals_point_up() {
 fn torus_normals_point_outward() {
     let (points, indices) = torus(24, 16, 1.0, 0.35);
     for tri in indices.chunks_exact(3) {
-        let (a, b, c) =
-            (points[tri[0] as usize], points[tri[1] as usize], points[tri[2] as usize]);
+        let (a, b, c) = (
+            points[tri[0] as usize],
+            points[tri[1] as usize],
+            points[tri[2] as usize],
+        );
         let centroid = (a + b + c) * (1.0 / 3.0);
         // Outward = away from the tube's center circle at the same major angle.
         let theta = centroid.z.atan2(centroid.x);
         let tube_center = Vec3::new(theta.cos(), 0.0, theta.sin());
         let outward = centroid - tube_center;
-        assert!((b - a).cross(c - a).dot(outward) > 0.0, "inward-facing torus triangle");
+        assert!(
+            (b - a).cross(c - a).dot(outward) > 0.0,
+            "inward-facing torus triangle"
+        );
     }
 }
 

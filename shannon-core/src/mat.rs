@@ -47,9 +47,8 @@ impl Mat33 {
         while r < 3 {
             let mut c = 0;
             while c < 3 {
-                out.m[r][c] = self.m[r][0] * o.m[0][c]
-                    + self.m[r][1] * o.m[1][c]
-                    + self.m[r][2] * o.m[2][c];
+                out.m[r][c] =
+                    self.m[r][0] * o.m[0][c] + self.m[r][1] * o.m[1][c] + self.m[r][2] * o.m[2][c];
                 c += 1;
             }
             r += 1;
@@ -99,12 +98,20 @@ impl Mat33 {
     /// Returns `Vec3::ZERO` out of range — no panic on device.
     #[inline(always)]
     pub fn row(self, i: usize) -> Vec3 {
-        if i < 3 { Vec3::new(self.m[i][0], self.m[i][1], self.m[i][2]) } else { Vec3::ZERO }
+        if i < 3 {
+            Vec3::new(self.m[i][0], self.m[i][1], self.m[i][2])
+        } else {
+            Vec3::ZERO
+        }
     }
 
     /// Returns `Vec3::ZERO` out of range — no panic on device.
     #[inline(always)]
     pub fn col(self, i: usize) -> Vec3 {
-        if i < 3 { Vec3::new(self.m[0][i], self.m[1][i], self.m[2][i]) } else { Vec3::ZERO }
+        if i < 3 {
+            Vec3::new(self.m[0][i], self.m[1][i], self.m[2][i])
+        } else {
+            Vec3::ZERO
+        }
     }
 }

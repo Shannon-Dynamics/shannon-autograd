@@ -28,7 +28,7 @@ fn box2_and_extrude() {
     // Inside is negative.
     assert!(sdf::box2(0.0, 0.0, 1.0, 1.0) < 0.0);
     // Extrusion: inside the 2D shape, past the depth → distance is z overshoot.
-    assert!((sdf::extrude(-0.5, 1.0, 0.5, ) - 0.5).abs() <= TOL);
+    assert!((sdf::extrude(-0.5, 1.0, 0.5,) - 0.5).abs() <= TOL);
     // Inside both → negative.
     assert!(sdf::extrude(-0.5, 0.0, 0.5) < 0.0);
 }
@@ -80,12 +80,26 @@ fn h_slot_is_empty_but_dynamic_h_renders() {
     let (s1, s2, gd, g, _hp, hr) = rest_args();
     // With the H parked at its slot, the slot centre is inside geometry…
     let slot_c = Vec3::new(sc::SLOT_X[sc::H_SLOT], sc::LETTER_Y, sc::LETTER_Z);
-    let with_h = sc::scene(slot_c + Vec3::new(-0.09, 0.0, 0.0), s1, s2, gd, g, slot_c, Quat::IDENTITY);
-    assert!(with_h < 0.0, "H at slot: left stroke interior should be negative, got {with_h}");
+    let with_h = sc::scene(
+        slot_c + Vec3::new(-0.09, 0.0, 0.0),
+        s1,
+        s2,
+        gd,
+        g,
+        slot_c,
+        Quat::IDENTITY,
+    );
+    assert!(
+        with_h < 0.0,
+        "H at slot: left stroke interior should be negative, got {with_h}"
+    );
     // …and with the H far away, the same point is empty space.
     let far = Vec3::new(50.0, 50.0, 50.0);
     let without = sc::scene(slot_c + Vec3::new(-0.09, 0.0, 0.0), s1, s2, gd, g, far, hr);
-    assert!(without > 0.05, "empty slot should be open space, got {without}");
+    assert!(
+        without > 0.05,
+        "empty slot should be open space, got {without}"
+    );
 }
 
 #[test]
@@ -93,7 +107,10 @@ fn arm_link_interior_is_negative() {
     let (s1, s2, gd, g, hp, hr) = rest_args();
     let mid = (sc::ARM_SHOULDER + s1) * 0.5;
     let d = sc::scene(mid, s1, s2, gd, g, hp, hr);
-    assert!(d < 0.0, "inside the upper-arm capsule should be negative, got {d}");
+    assert!(
+        d < 0.0,
+        "inside the upper-arm capsule should be negative, got {d}"
+    );
 }
 
 #[test]

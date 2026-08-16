@@ -18,7 +18,8 @@ use anyhow::Result;
 use shannon_core::mesh::mesh_eval_position;
 use shannon_core::{MeshQuery, Vec3};
 use shannon_examples::obj::write_obj;
-use shannon_rt::{Array, Device, GpuTimer, ScopedTimer, launch};
+use shannon_kernels::launch;
+use shannon_rt::{Array, Device, GpuTimer, ScopedTimer};
 use shannon_spatial::shapes::icosphere;
 use shannon_spatial::{Mesh, brute_force_closest_point};
 
@@ -35,7 +36,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
     fn vec3(&mut self) -> Vec3 {
@@ -51,8 +55,12 @@ struct Args {
 }
 
 fn parse_args() -> Args {
-    let mut args =
-        Args { sizes: vec![128, 16_384], iters: 100, subdiv: 5, dump_obj: None };
+    let mut args = Args {
+        sizes: vec![128, 16_384],
+        iters: 100,
+        subdiv: 5,
+        dump_obj: None,
+    };
     let argv: Vec<String> = std::env::args().collect();
     let mut i = 1;
     while i < argv.len() {
@@ -81,7 +89,9 @@ fn parse_args() -> Args {
 
 /// Query points in the unit sphere's AABB scaled 2× — a near/far mix.
 fn gen_queries(rng: &mut Lcg, m: usize) -> Vec<Vec3> {
-    (0..m).map(|_| rng.vec3() * 4.0 - Vec3::splat(2.0)).collect()
+    (0..m)
+        .map(|_| rng.vec3() * 4.0 - Vec3::splat(2.0))
+        .collect()
 }
 
 /// The Day-5 comparison rule (plan §5.9). `reference` is brute force in phase
@@ -125,11 +135,7 @@ fn mean_stdev(xs: &[f64]) -> (f64, f64) {
 }
 
 /// One GPU cell: 5 warm-up launches, sync, then `iters` × event-timed launch.
-fn bench_gpu<F: FnMut() -> Result<()>>(
-    dev: &Device,
-    iters: u32,
-    mut one: F,
-) -> Result<(f64, f64)> {
+fn bench_gpu<F: FnMut() -> Result<()>>(dev: &Device, iters: u32, mut one: F) -> Result<(f64, f64)> {
     for _ in 0..5 {
         one()?;
     }
@@ -188,7 +194,18 @@ fn main() -> Result<()> {
     let mut out_gpu = Array::<MeshQuery>::zeros(m)?;
     let mut out_cpu = vec![MeshQuery::default(); m];
 
-    launch!(mesh_query, dim = m, (mesh.nodes(), mesh.points(), mesh.indices(), &q_dev, MAX_DIST, &mut out_gpu))?;
+    launch!(
+        mesh_query,
+        dim = m,
+        (
+            mesh.nodes(),
+            mesh.points(),
+            mesh.indices(),
+            &q_dev,
+            MAX_DIST,
+            &mut out_gpu
+        )
+    )?;
     shannon_cpu::mesh_query(
         mesh.host_nodes(),
         &points,
@@ -220,7 +237,18 @@ fn main() -> Result<()> {
         let mut out_cpu = vec![MeshQuery::default(); m];
 
         let gpu = bench_gpu(dev, args.iters, || {
-            launch!(mesh_query, dim = m, (mesh.nodes(), mesh.points(), mesh.indices(), &q_dev, MAX_DIST, &mut out_gpu))
+            launch!(
+                mesh_query,
+                dim = m,
+                (
+                    mesh.nodes(),
+                    mesh.points(),
+                    mesh.indices(),
+                    &q_dev,
+                    MAX_DIST,
+                    &mut out_gpu
+                )
+            )
         })?;
         let cpu = bench_cpu(args.iters, || {
             shannon_cpu::mesh_query(
@@ -237,7 +265,15 @@ fn main() -> Result<()> {
         // validated against brute at 128; this pins the at-scale path too.
         let gpu_results = out_gpu.to_vec()?;
         for i in 0..m {
-            assert_queries_agree("GPU@scale", i, &gpu_results[i], &out_cpu[i], &points, &indices, qs[i]);
+            assert_queries_agree(
+                "GPU@scale",
+                i,
+                &gpu_results[i],
+                &out_cpu[i],
+                &points,
+                &indices,
+                qs[i],
+            );
         }
 
         println!(

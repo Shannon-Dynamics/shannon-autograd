@@ -33,7 +33,11 @@ pub fn capsule(p: Vec3, a: Vec3, b: Vec3, r: f32) -> f32 {
     let pa = p - a;
     let ba = b - a;
     let denom = ba.dot(ba);
-    let h = if denom > crate::EPS { math::clamp(pa.dot(ba) / denom, 0.0, 1.0) } else { 0.0 };
+    let h = if denom > crate::EPS {
+        math::clamp(pa.dot(ba) / denom, 0.0, 1.0)
+    } else {
+        0.0
+    };
     (pa - ba * h).length() - r
 }
 

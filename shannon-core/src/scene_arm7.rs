@@ -185,9 +185,18 @@ fn map(p: Vec3, f: &Arm7Frame) -> (f32, f32) {
     let leg_y = (TABLE_TOP - 0.10) * 0.5;
     let leg_h = Vec3::new(0.03, leg_y, 0.03);
     let mut legs = sdf::box_(leg_h, p - Vec3::new(-1.15, leg_y, TABLE_Z - 0.24));
-    legs = math::min(legs, sdf::box_(leg_h, p - Vec3::new(1.15, leg_y, TABLE_Z - 0.24)));
-    legs = math::min(legs, sdf::box_(leg_h, p - Vec3::new(-1.15, leg_y, TABLE_Z + 0.24)));
-    legs = math::min(legs, sdf::box_(leg_h, p - Vec3::new(1.15, leg_y, TABLE_Z + 0.24)));
+    legs = math::min(
+        legs,
+        sdf::box_(leg_h, p - Vec3::new(1.15, leg_y, TABLE_Z - 0.24)),
+    );
+    legs = math::min(
+        legs,
+        sdf::box_(leg_h, p - Vec3::new(-1.15, leg_y, TABLE_Z + 0.24)),
+    );
+    legs = math::min(
+        legs,
+        sdf::box_(leg_h, p - Vec3::new(1.15, leg_y, TABLE_Z + 0.24)),
+    );
     let table = math::min(table_top, legs);
     if table < d {
         d = table;
@@ -367,7 +376,16 @@ pub fn draw_arm7_at(
     width: u32,
     height: u32,
 ) -> Vec3 {
-    let f = Arm7Frame { elbow, wrist, hand_end, f1, f2, h_pos, h_yaw, carrying };
+    let f = Arm7Frame {
+        elbow,
+        wrist,
+        hand_end,
+        f1,
+        f2,
+        h_pos,
+        h_yaw,
+        carrying,
+    };
 
     let x = (i as u32) % width;
     let y = (i as u32) / width;

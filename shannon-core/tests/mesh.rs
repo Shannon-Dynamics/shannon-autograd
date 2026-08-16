@@ -20,7 +20,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
     fn vec3(&mut self) -> Vec3 {
@@ -34,7 +37,10 @@ const B: Vec3 = Vec3::new(1.0, 0.0, 0.0);
 const C: Vec3 = Vec3::new(0.0, 1.0, 0.0);
 
 fn assert_close(cp: Vec3, expect: Vec3, u: f32, eu: f32, v: f32, ev: f32) {
-    assert!((cp - expect).length() < 1e-6, "closest point {cp:?} != expected {expect:?}");
+    assert!(
+        (cp - expect).length() < 1e-6,
+        "closest point {cp:?} != expected {expect:?}"
+    );
     assert!((u - eu).abs() < 1e-6, "u {u} != {eu}");
     assert!((v - ev).abs() < 1e-6, "v {v} != {ev}");
 }
@@ -123,10 +129,17 @@ fn on_surface_point_has_zero_distance() {
         }
         // Random convex combination = a point ON the triangle.
         let (r1, r2) = (rng.next_f32(), rng.next_f32());
-        let (u, v) = if r1 + r2 > 1.0 { (1.0 - r1, 1.0 - r2) } else { (r1, r2) };
+        let (u, v) = if r1 + r2 > 1.0 {
+            (1.0 - r1, 1.0 - r2)
+        } else {
+            (r1, r2)
+        };
         let p = a * u + b * v + c * (1.0 - u - v);
         let (cp, _, _) = closest_point_on_triangle(p, a, b, c);
-        assert!((cp - p).length() < 1e-4, "on-surface point should be its own closest point");
+        assert!(
+            (cp - p).length() < 1e-4,
+            "on-surface point should be its own closest point"
+        );
     }
 }
 
@@ -145,7 +158,11 @@ fn closest_point_is_an_infimum() {
         let d = (cp - p).length();
         for _ in 0..100 {
             let (r1, r2) = (rng.next_f32(), rng.next_f32());
-            let (u, v) = if r1 + r2 > 1.0 { (1.0 - r1, 1.0 - r2) } else { (r1, r2) };
+            let (u, v) = if r1 + r2 > 1.0 {
+                (1.0 - r1, 1.0 - r2)
+            } else {
+                (r1, r2)
+            };
             let sample = a * u + b * v + c * (1.0 - u - v);
             assert!(
                 d <= (sample - p).length() + 1e-4,
@@ -163,11 +180,27 @@ fn closest_point_is_an_infimum() {
 fn aabb_distance_cases() {
     let (lo, hi) = (Vec3::ZERO, Vec3::ONE);
     assert_eq!(distance_to_aabb_sq(Vec3::splat(0.5), lo, hi), 0.0, "inside");
-    assert_eq!(distance_to_aabb_sq(Vec3::new(0.5, 0.5, 2.0), lo, hi), 1.0, "face");
-    assert_eq!(distance_to_aabb_sq(Vec3::new(2.0, 2.0, 0.5), lo, hi), 2.0, "edge");
-    assert_eq!(distance_to_aabb_sq(Vec3::new(2.0, 2.0, 2.0), lo, hi), 3.0, "corner");
+    assert_eq!(
+        distance_to_aabb_sq(Vec3::new(0.5, 0.5, 2.0), lo, hi),
+        1.0,
+        "face"
+    );
+    assert_eq!(
+        distance_to_aabb_sq(Vec3::new(2.0, 2.0, 0.5), lo, hi),
+        2.0,
+        "edge"
+    );
+    assert_eq!(
+        distance_to_aabb_sq(Vec3::new(2.0, 2.0, 2.0), lo, hi),
+        3.0,
+        "corner"
+    );
     // On the boundary counts as inside (distance 0) — closed box.
-    assert_eq!(distance_to_aabb_sq(Vec3::new(1.0, 0.5, 0.5), lo, hi), 0.0, "boundary");
+    assert_eq!(
+        distance_to_aabb_sq(Vec3::new(1.0, 0.5, 0.5), lo, hi),
+        0.0,
+        "boundary"
+    );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,7 +216,10 @@ fn triangle_aabb_bounds_all_vertices() {
 
 #[test]
 fn sliver_predicate() {
-    assert!(!triangle_is_sliver(A, B, C), "healthy triangle flagged as sliver");
+    assert!(
+        !triangle_is_sliver(A, B, C),
+        "healthy triangle flagged as sliver"
+    );
     // Collinear — zero area with distinct vertices.
     assert!(triangle_is_sliver(
         Vec3::ZERO,

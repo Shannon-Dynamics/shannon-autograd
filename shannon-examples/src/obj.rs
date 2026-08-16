@@ -12,9 +12,12 @@ use std::path::Path;
 
 /// Write a triangle mesh: `v x y z` lines then 1-based `f a b c` lines.
 pub fn write_obj(path: &Path, points: &[Vec3], indices: &[i32]) -> Result<()> {
-    anyhow::ensure!(indices.len().is_multiple_of(3), "indices must be 3 per triangle");
-    let file = std::fs::File::create(path)
-        .with_context(|| format!("creating {}", path.display()))?;
+    anyhow::ensure!(
+        indices.len().is_multiple_of(3),
+        "indices must be 3 per triangle"
+    );
+    let file =
+        std::fs::File::create(path).with_context(|| format!("creating {}", path.display()))?;
     let mut w = BufWriter::new(file);
     for p in points {
         writeln!(w, "v {} {} {}", p.x, p.y, p.z)?;
@@ -28,8 +31,8 @@ pub fn write_obj(path: &Path, points: &[Vec3], indices: &[i32]) -> Result<()> {
 
 /// Write a point cloud as a v-only OBJ — valid OBJ; viewers render vertices.
 pub fn write_obj_points(path: &Path, points: &[Vec3]) -> Result<()> {
-    let file = std::fs::File::create(path)
-        .with_context(|| format!("creating {}", path.display()))?;
+    let file =
+        std::fs::File::create(path).with_context(|| format!("creating {}", path.display()))?;
     let mut w = BufWriter::new(file);
     for p in points {
         writeln!(w, "v {} {} {}", p.x, p.y, p.z)?;
@@ -43,8 +46,8 @@ pub fn write_obj_points(path: &Path, points: &[Vec3]) -> Result<()> {
 /// (relative) or out-of-range indices are errors; every other line type is
 /// silently skipped.
 pub fn read_obj(path: &Path) -> Result<(Vec<Vec3>, Vec<i32>)> {
-    let text = std::fs::read_to_string(path)
-        .with_context(|| format!("reading {}", path.display()))?;
+    let text =
+        std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     let mut points: Vec<Vec3> = Vec::new();
     let mut indices: Vec<i32> = Vec::new();
 

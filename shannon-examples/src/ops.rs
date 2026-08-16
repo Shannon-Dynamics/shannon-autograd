@@ -19,7 +19,8 @@
 use anyhow::{Result, anyhow};
 use shannon_autodiff::Tape;
 use shannon_core::{MeshQuery, Vec3};
-use shannon_rt::{Array, launch};
+use shannon_kernels::launch;
+use shannon_rt::Array;
 
 /// Phase 1 in one call: zero every listed gradient, reset the accumulated
 /// loss VALUE, seed `loss.grad = 1` — all BEFORE anything records. Two
@@ -60,7 +61,9 @@ pub fn affine_op<'a>(
     launch!(affine, dim = n, (a, scale, bias, &mut *y))?;
     let y_sh: &'a Array<f32> = y; // ← the downgrade: y is frozen until backward
     tape.record("affine", n, move || {
-        let gy = y_sh.grad().ok_or_else(|| anyhow!("affine: y has no grad"))?;
+        let gy = y_sh
+            .grad()
+            .ok_or_else(|| anyhow!("affine: y has no grad"))?;
         let ga = a.grad().ok_or_else(|| anyhow!("affine: a has no grad"))?;
         launch!(adj_affine, dim = n, (gy, scale, ga))
     });
@@ -77,7 +80,9 @@ pub fn sin_map_op<'a>(
     launch!(sin_map, dim = n, (a, &mut *y))?;
     let y_sh: &'a Array<f32> = y;
     tape.record("sin_map", n, move || {
-        let gy = y_sh.grad().ok_or_else(|| anyhow!("sin_map: y has no grad"))?;
+        let gy = y_sh
+            .grad()
+            .ok_or_else(|| anyhow!("sin_map: y has no grad"))?;
         let ga = a.grad().ok_or_else(|| anyhow!("sin_map: a has no grad"))?;
         launch!(adj_sin_map, dim = n, (a, gy, ga))
     });
@@ -93,7 +98,9 @@ pub fn sum_op<'a>(tape: &mut Tape<'a>, x: &'a Array<f32>, loss: &'a Array<f32>) 
     let n = x.len();
     launch!(sum_scalar, dim = n, (x, loss))?;
     tape.record("sum_scalar", n, move || {
-        let gl = loss.grad().ok_or_else(|| anyhow!("sum: loss has no grad"))?;
+        let gl = loss
+            .grad()
+            .ok_or_else(|| anyhow!("sum: loss has no grad"))?;
         let gx = x.grad().ok_or_else(|| anyhow!("sum: x has no grad"))?;
         launch!(adj_sum_scalar, dim = n, (gl, gx))
     });
@@ -130,9 +137,17 @@ pub fn chamfer_ab_op<'a>(
     let n = src.len();
     launch!(chamfer_ab, dim = n, (src, corr, tpoints, tindices, loss))?;
     tape.record("chamfer_ab", n, move || {
-        let gl = loss.grad().ok_or_else(|| anyhow!("chamfer_ab: loss has no grad"))?;
-        let gs = src.grad().ok_or_else(|| anyhow!("chamfer_ab: src has no grad"))?;
-        launch!(adj_chamfer_ab, dim = n, (src, corr, tpoints, tindices, gl, gs))
+        let gl = loss
+            .grad()
+            .ok_or_else(|| anyhow!("chamfer_ab: loss has no grad"))?;
+        let gs = src
+            .grad()
+            .ok_or_else(|| anyhow!("chamfer_ab: src has no grad"))?;
+        launch!(
+            adj_chamfer_ab,
+            dim = n,
+            (src, corr, tpoints, tindices, gl, gs)
+        )
     });
     Ok(())
 }
@@ -150,9 +165,17 @@ pub fn chamfer_ba_op<'a>(
     let n = tverts.len();
     launch!(chamfer_ba, dim = n, (tverts, corr, spoints, sindices, loss))?;
     tape.record("chamfer_ba", n, move || {
-        let gl = loss.grad().ok_or_else(|| anyhow!("chamfer_ba: loss has no grad"))?;
-        let gp = spoints.grad().ok_or_else(|| anyhow!("chamfer_ba: spoints has no grad"))?;
-        launch!(adj_chamfer_ba, dim = n, (tverts, corr, spoints, sindices, gl, gp))
+        let gl = loss
+            .grad()
+            .ok_or_else(|| anyhow!("chamfer_ba: loss has no grad"))?;
+        let gp = spoints
+            .grad()
+            .ok_or_else(|| anyhow!("chamfer_ba: spoints has no grad"))?;
+        launch!(
+            adj_chamfer_ba,
+            dim = n,
+            (tverts, corr, spoints, sindices, gl, gp)
+        )
     });
     Ok(())
 }

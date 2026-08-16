@@ -2,9 +2,7 @@
 //! refit path and the closest-point brute-force oracle (Day-5 plan §5.4).
 
 use anyhow::Result;
-use shannon_core::mesh::{
-    MeshQuery, closest_point_on_triangle, triangle_aabb, triangle_is_sliver,
-};
+use shannon_core::mesh::{MeshQuery, closest_point_on_triangle, triangle_aabb, triangle_is_sliver};
 use shannon_core::{BvhNode, Vec3};
 use shannon_rt::Array;
 
@@ -84,7 +82,12 @@ pub fn brute_force_closest_point(
         let d_sq = (cp - p).length_sq();
         if d_sq < best_sq {
             best_sq = d_sq;
-            best = MeshQuery { face: face as i32, u, v, dist: 0.0 };
+            best = MeshQuery {
+                face: face as i32,
+                u,
+                v,
+                dist: 0.0,
+            };
         }
     }
     if best.face >= 0 {
@@ -114,9 +117,14 @@ pub struct Mesh {
 impl Mesh {
     /// Build the BVH over triangle AABBs on the host and upload everything.
     pub fn new(points: &[Vec3], indices: &[i32]) -> Result<Self> {
-        anyhow::ensure!(indices.len().is_multiple_of(3), "indices must be 3 per triangle");
         anyhow::ensure!(
-            indices.iter().all(|&i| (i as usize) < points.len() && i >= 0),
+            indices.len().is_multiple_of(3),
+            "indices must be 3 per triangle"
+        );
+        anyhow::ensure!(
+            indices
+                .iter()
+                .all(|&i| (i as usize) < points.len() && i >= 0),
             "triangle index out of range"
         );
         let host_nodes = build_median_split(&triangle_aabbs(points, indices));

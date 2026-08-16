@@ -72,3 +72,9 @@ pub struct BenchSz {
     pub v: Vec3,
     pub w: Vec3,
 }
+
+// AsKernelArg (identity, by value) for the bench structs. Lives HERE, not in
+// shannon-rt: the shipped runtime must not name example-crate types — this
+// was LIMITATIONS row 8 until the module-cache inversion was fixed. Exactly
+// what any third-party crate writes for its own POD kernel params.
+shannon_rt::impl_kernel_arg!(BenchS0, BenchSf, BenchSv, BenchSm, BenchSa, BenchSz);

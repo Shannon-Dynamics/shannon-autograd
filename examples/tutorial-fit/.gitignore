@@ -1,0 +1,5 @@
+# Build outputs (regenerable; Cargo.lock is kept — application project)
+/target
+/.oxide-artifacts
+*.ll
+*.ptx

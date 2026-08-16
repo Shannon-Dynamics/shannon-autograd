@@ -1,0 +1,35 @@
+# A USER project consuming shannon-autograd as a library — the finished result
+# of docs/TUTORIAL.md. Nothing in the SDK workspace is modified by it.
+#
+# The `[workspace]` table makes this a standalone project (it is `exclude`d
+# from the SDK workspace); `cargo oxide run` works from this directory.
+[workspace]
+
+[package]
+# ⚠️ The package name is the embedded-PTX bundle lookup key
+# (`kernels::load()` uses CARGO_PKG_NAME) — rename package and nothing else
+# needs to change, but do rebuild.
+name = "tutorial-fit"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+publish = false
+
+[dependencies]
+# The SDK. A published release would use versions ("0.1"); until then, paths.
+shannon-core     = { path = "../../shannon-core" }
+shannon-device   = { path = "../../shannon-device" }
+shannon-rt       = { path = "../../shannon-rt" }
+shannon-autodiff = { path = "../../shannon-autodiff" }
+
+# ⚠️ Required as DIRECT dependencies, not re-exported through the SDK:
+# `#[cuda_module]` (inside `shannon_gpu_kernels!`) emits absolute
+# `::cuda_core::…` / `::cuda_host::…` / `::cuda_device::…` paths, so these
+# must be resolvable at this crate's dependency-graph root.
+cuda-device = { path = "../../../cuda-oxide/crates/cuda-device" }
+cuda-core   = { path = "../../../cuda-oxide/crates/cuda-core" }
+cuda-host   = { path = "../../../cuda-oxide/crates/cuda-host" }
+
+# `shannon_cpu_kernels!` expands to rayon parallel loops.
+rayon  = "1.10"
+anyhow = "1"

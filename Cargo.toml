@@ -1,5 +1,6 @@
 [workspace]
 resolver = "3"
+exclude = ["examples/*"]   # standalone user-example projects — own workspaces
 members = [
     "shannon-core",
     "shannon-device",

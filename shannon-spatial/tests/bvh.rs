@@ -16,7 +16,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
     fn vec3(&mut self) -> Vec3 {
@@ -50,7 +53,10 @@ fn every_prim_in_exactly_one_leaf() {
     let nodes = build_median_split(&aabbs);
     let leaves = sorted(nodes.iter().filter(|n| n.right < 0).map(|n| n.left));
     let expected: Vec<i32> = (0..1000).collect();
-    assert_eq!(leaves, expected, "leaf primitive indices must be a permutation of 0..n");
+    assert_eq!(
+        leaves, expected,
+        "leaf primitive indices must be a permutation of 0..n"
+    );
 }
 
 #[test]
@@ -69,8 +75,14 @@ fn child_aabbs_contained_in_parent() {
     }
     for n in &nodes {
         if n.right >= 0 {
-            assert!(contains(n, &nodes[n.left as usize]), "left child escapes parent bounds");
-            assert!(contains(n, &nodes[n.right as usize]), "right child escapes parent bounds");
+            assert!(
+                contains(n, &nodes[n.left as usize]),
+                "left child escapes parent bounds"
+            );
+            assert!(
+                contains(n, &nodes[n.right as usize]),
+                "right child escapes parent bounds"
+            );
         }
     }
 }
@@ -126,11 +138,18 @@ fn ray_on_axis_origin_is_robust() {
     let x = Vec3::new(1.0, 0.0, 0.0);
 
     let inside = Vec3::new(0.0, 2.0, 2.0);
-    assert_eq!(sorted(query_ray(&nodes, inside, x, 1.0e30)), vec![0], "parallel-inside must hit");
+    assert_eq!(
+        sorted(query_ray(&nodes, inside, x, 1.0e30)),
+        vec![0],
+        "parallel-inside must hit"
+    );
     assert_eq!(brute_force_ray(&aabbs, inside, x, 1.0e30), vec![0]);
 
     let outside = Vec3::new(0.0, 5.0, 2.0);
-    assert!(sorted(query_ray(&nodes, outside, x, 1.0e30)).is_empty(), "parallel-outside must miss");
+    assert!(
+        sorted(query_ray(&nodes, outside, x, 1.0e30)).is_empty(),
+        "parallel-outside must miss"
+    );
     assert!(brute_force_ray(&aabbs, outside, x, 1.0e30).is_empty());
 
     for graze in [
@@ -140,7 +159,10 @@ fn ray_on_axis_origin_is_robust() {
     ] {
         let tree = sorted(query_ray(&nodes, graze, x, 1.0e30));
         let brute = sorted(brute_force_ray(&aabbs, graze, x, 1.0e30).into_iter());
-        assert_eq!(tree, brute, "graze at {graze:?} must agree between tree and brute force");
+        assert_eq!(
+            tree, brute,
+            "graze at {graze:?} must agree between tree and brute force"
+        );
     }
 }
 
@@ -149,12 +171,19 @@ fn single_prim_and_empty_tree() {
     let aabbs = vec![(Vec3::ZERO, Vec3::ONE)];
     let nodes = build_median_split(&aabbs);
     assert_eq!(nodes.len(), 1);
-    assert_eq!(sorted(query_aabb(&nodes, Vec3::splat(0.5), Vec3::splat(0.6))), vec![0]);
+    assert_eq!(
+        sorted(query_aabb(&nodes, Vec3::splat(0.5), Vec3::splat(0.6))),
+        vec![0]
+    );
     assert!(sorted(query_aabb(&nodes, Vec3::splat(5.0), Vec3::splat(6.0))).is_empty());
 
     let empty: Vec<(Vec3, Vec3)> = Vec::new();
     let nodes = build_median_split(&empty);
     assert!(nodes.is_empty());
     assert!(query_aabb(&nodes, Vec3::ZERO, Vec3::ONE).next().is_none());
-    assert!(query_ray(&nodes, Vec3::ZERO, Vec3::new(1.0, 0.0, 0.0), 1.0e30).next().is_none());
+    assert!(
+        query_ray(&nodes, Vec3::ZERO, Vec3::new(1.0, 0.0, 0.0), 1.0e30)
+            .next()
+            .is_none()
+    );
 }

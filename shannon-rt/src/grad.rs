@@ -49,9 +49,8 @@ impl<'a> HostGradVec3<'a> {
     pub fn new(buf: &'a mut [Vec3]) -> Self {
         // SAFETY: #[repr(C)] Vec3 is exactly 3 consecutive f32s (12 bytes,
         // align 4); reinterpreting n Vec3s as 3n AtomicU32s is layout-exact.
-        let atomics = unsafe {
-            core::slice::from_raw_parts(buf.as_ptr() as *const AtomicU32, buf.len() * 3)
-        };
+        let atomics =
+            unsafe { core::slice::from_raw_parts(buf.as_ptr() as *const AtomicU32, buf.len() * 3) };
         Self { buf: atomics }
     }
 

@@ -42,7 +42,10 @@ pub fn adj_affine_at<S: GradSink<f32>>(i: usize, adj_y: &[f32], scale: f32, adj_
 /// y = a + b.   ā += ḡ,  b̄ += ḡ
 #[inline(always)]
 pub fn adj_add_at<Sa: GradSink<f32>, Sb: GradSink<f32>>(
-    i: usize, adj_y: &[f32], adj_a: &Sa, adj_b: &Sb,
+    i: usize,
+    adj_y: &[f32],
+    adj_a: &Sa,
+    adj_b: &Sb,
 ) {
     let g = adj_y[i];
     adj_a.accumulate(i, g);
@@ -52,7 +55,10 @@ pub fn adj_add_at<Sa: GradSink<f32>, Sb: GradSink<f32>>(
 /// y = a − b.   ā += ḡ,  b̄ −= ḡ
 #[inline(always)]
 pub fn adj_sub_at<Sa: GradSink<f32>, Sb: GradSink<f32>>(
-    i: usize, adj_y: &[f32], adj_a: &Sa, adj_b: &Sb,
+    i: usize,
+    adj_y: &[f32],
+    adj_a: &Sa,
+    adj_b: &Sb,
 ) {
     let g = adj_y[i];
     adj_a.accumulate(i, g);
@@ -62,7 +68,12 @@ pub fn adj_sub_at<Sa: GradSink<f32>, Sb: GradSink<f32>>(
 /// y = a · b.   ā += ḡ·b,  b̄ += ḡ·a
 #[inline(always)]
 pub fn adj_mul_at<Sa: GradSink<f32>, Sb: GradSink<f32>>(
-    i: usize, a: &[f32], b: &[f32], adj_y: &[f32], adj_a: &Sa, adj_b: &Sb,
+    i: usize,
+    a: &[f32],
+    b: &[f32],
+    adj_y: &[f32],
+    adj_a: &Sa,
+    adj_b: &Sb,
 ) {
     let g = adj_y[i];
     adj_a.accumulate(i, g * b[i]);
@@ -74,7 +85,12 @@ pub fn adj_mul_at<Sa: GradSink<f32>, Sb: GradSink<f32>>(
 /// alive (the tape does — records reference forward buffers).
 #[inline(always)]
 pub fn adj_div_at<Sa: GradSink<f32>, Sb: GradSink<f32>>(
-    i: usize, b: &[f32], y: &[f32], adj_y: &[f32], adj_a: &Sa, adj_b: &Sb,
+    i: usize,
+    b: &[f32],
+    y: &[f32],
+    adj_y: &[f32],
+    adj_a: &Sa,
+    adj_b: &Sb,
 ) {
     let g = adj_y[i];
     adj_a.accumulate(i, g / b[i]);
@@ -112,7 +128,12 @@ pub fn adj_sqrt_at<S: GradSink<f32>>(i: usize, y: &[f32], adj_y: &[f32], adj_a: 
 /// y = a·b (Vec3 dot).   ā += ḡ·b,  b̄ += ḡ·a
 #[inline(always)]
 pub fn adj_dot_at<Sa: GradSink<Vec3>, Sb: GradSink<Vec3>>(
-    i: usize, a: &[Vec3], b: &[Vec3], adj_y: &[f32], adj_a: &Sa, adj_b: &Sb,
+    i: usize,
+    a: &[Vec3],
+    b: &[Vec3],
+    adj_y: &[f32],
+    adj_a: &Sa,
+    adj_b: &Sb,
 ) {
     let g = adj_y[i];
     adj_a.accumulate(i, b[i] * g);

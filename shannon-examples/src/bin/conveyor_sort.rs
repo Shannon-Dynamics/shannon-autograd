@@ -20,7 +20,8 @@ use shannon_core::conveyor::belt_surface_y;
 use shannon_core::mesh::mesh_eval_position;
 use shannon_core::{MeshQuery, Particle, Vec3};
 use shannon_examples::obj::{write_obj, write_obj_points};
-use shannon_rt::{Array, Device, launch};
+use shannon_kernels::launch;
+use shannon_rt::{Array, Device};
 use shannon_spatial::shapes::grid;
 use shannon_spatial::{Mesh, brute_force_closest_point};
 use std::path::PathBuf;
@@ -52,7 +53,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
 }
@@ -118,7 +122,9 @@ fn spawn_particles(rng: &mut Lcg, n: usize) -> Vec<Particle> {
 }
 
 fn surface_y(x: f32, z: f32, t: f32) -> f32 {
-    belt_surface_y(x, z, t, GROOVE_AMP, LANE_W, RIPPLE_AMP, RIPPLE_K, BELT_SPEED)
+    belt_surface_y(
+        x, z, t, GROOVE_AMP, LANE_W, RIPPLE_AMP, RIPPLE_K, BELT_SPEED,
+    )
 }
 
 /// The tunnelling predicate — every particle, every frame. Inside the belt
@@ -155,7 +161,11 @@ fn assert_queries_agree(
     indices: &[i32],
     query_point: Vec3,
 ) {
-    assert_eq!(got.face >= 0, reference.face >= 0, "{label} query {i}: found-flags diverge");
+    assert_eq!(
+        got.face >= 0,
+        reference.face >= 0,
+        "{label} query {i}: found-flags diverge"
+    );
     if got.face < 0 {
         return;
     }
@@ -183,7 +193,18 @@ fn three_way_check(mesh: &Mesh, ps: &[Particle], frame: usize) -> Result<()> {
 
     let q_dev = Array::from_slice(&queries)?;
     let mut out_gpu = Array::<MeshQuery>::zeros(m)?;
-    launch!(mesh_query, dim = m, (mesh.nodes(), mesh.points(), mesh.indices(), &q_dev, CHECK_MAX_DIST, &mut out_gpu))?;
+    launch!(
+        mesh_query,
+        dim = m,
+        (
+            mesh.nodes(),
+            mesh.points(),
+            mesh.indices(),
+            &q_dev,
+            CHECK_MAX_DIST,
+            &mut out_gpu
+        )
+    )?;
     let gpu = out_gpu.to_vec()?;
 
     let mut cpu: Vec<MeshQuery> = vec![MeshQuery::default(); m];
@@ -197,9 +218,26 @@ fn three_way_check(mesh: &Mesh, ps: &[Particle], frame: usize) -> Result<()> {
     );
 
     for i in 0..m {
-        let brute = brute_force_closest_point(&pts, mesh.host_indices(), queries[i], CHECK_MAX_DIST);
-        assert_queries_agree("GPU", i, &gpu[i], &brute, &pts, mesh.host_indices(), queries[i]);
-        assert_queries_agree("CPU", i, &cpu[i], &brute, &pts, mesh.host_indices(), queries[i]);
+        let brute =
+            brute_force_closest_point(&pts, mesh.host_indices(), queries[i], CHECK_MAX_DIST);
+        assert_queries_agree(
+            "GPU",
+            i,
+            &gpu[i],
+            &brute,
+            &pts,
+            mesh.host_indices(),
+            queries[i],
+        );
+        assert_queries_agree(
+            "CPU",
+            i,
+            &cpu[i],
+            &brute,
+            &pts,
+            mesh.host_indices(),
+            queries[i],
+        );
     }
     println!("✓ frame {frame}: three-way closest-point check — GPU == brute == CPU ({m} samples)");
     Ok(())
@@ -241,12 +279,37 @@ fn main() -> Result<()> {
 
         // deform → refit → step: the query kernel must traverse bounds
         // refreshed from the very points it reads.
-        launch!(belt_deform, dim = n_verts,
-                (&rest_arr, t, GROOVE_AMP, LANE_W, RIPPLE_AMP, RIPPLE_K, BELT_SPEED, mesh.points_mut()))?;
+        launch!(
+            belt_deform,
+            dim = n_verts,
+            (
+                &rest_arr,
+                t,
+                GROOVE_AMP,
+                LANE_W,
+                RIPPLE_AMP,
+                RIPPLE_K,
+                BELT_SPEED,
+                mesh.points_mut()
+            )
+        )?;
         mesh.refit()?;
-        launch!(conveyor_step, dim = args.particles,
-                (&parts_a, mesh.nodes(), mesh.points(), mesh.indices(),
-                 MARGIN, DT, MAX_DIST, Y_FLOOR, BELT_SPEED, &mut parts_b))?;
+        launch!(
+            conveyor_step,
+            dim = args.particles,
+            (
+                &parts_a,
+                mesh.nodes(),
+                mesh.points(),
+                mesh.indices(),
+                MARGIN,
+                DT,
+                MAX_DIST,
+                Y_FLOOR,
+                BELT_SPEED,
+                &mut parts_b
+            )
+        )?;
         std::mem::swap(&mut parts_a, &mut parts_b);
 
         let ps = parts_a.to_vec()?;
@@ -256,7 +319,11 @@ fn main() -> Result<()> {
         }
         if args.dump_every > 0 && frame % args.dump_every == 0 {
             let pts = mesh.points().to_vec()?;
-            write_obj(&args.out_dir.join(format!("belt_{frame:04}.obj")), &pts, &idx)?;
+            write_obj(
+                &args.out_dir.join(format!("belt_{frame:04}.obj")),
+                &pts,
+                &idx,
+            )?;
             write_obj_points(
                 &args.out_dir.join(format!("parts_{frame:04}.obj")),
                 &ps.iter().map(|p| p.pos).collect::<Vec<_>>(),
@@ -264,7 +331,11 @@ fn main() -> Result<()> {
         }
         if frame % 100 == 99 {
             let delivered = ps.iter().filter(|p| p.pos.x > EXTENT).count();
-            println!("  frame {:>3}: delivered {delivered}/{}", frame + 1, args.particles);
+            println!(
+                "  frame {:>3}: delivered {delivered}/{}",
+                frame + 1,
+                args.particles
+            );
         }
         last_ps = ps;
     }
@@ -282,9 +353,18 @@ fn main() -> Result<()> {
             sorted_ok += 1;
         }
     }
-    let sort_acc = if delivered.is_empty() { 0.0 } else { sorted_ok as f32 / delivered.len() as f32 };
+    let sort_acc = if delivered.is_empty() {
+        0.0
+    } else {
+        sorted_ok as f32 / delivered.len() as f32
+    };
 
-    println!("\ndelivered off the belt end: {}/{} ({:.0}%)", delivered.len(), last_ps.len(), frac * 100.0);
+    println!(
+        "\ndelivered off the belt end: {}/{} ({:.0}%)",
+        delivered.len(),
+        last_ps.len(),
+        frac * 100.0
+    );
     print!("lane histogram:");
     for (lane, n) in &hist {
         print!("  z={:+.0}: {n}", *lane as f32 * LANE_W);
@@ -292,7 +372,11 @@ fn main() -> Result<()> {
     println!("\nsorted within ±{}·lane: {:.0}%", 0.25, sort_acc * 100.0);
 
     assert!(frac >= 0.60, "delivery failed: {:.0}% < 60%", frac * 100.0);
-    assert!(sort_acc >= 0.80, "sorting failed: {:.0}% < 80%", sort_acc * 100.0);
+    assert!(
+        sort_acc >= 0.80,
+        "sorting failed: {:.0}% < 80%",
+        sort_acc * 100.0
+    );
 
     if args.dump_every > 0 {
         println!("OBJ frames in {}/", args.out_dir.display());

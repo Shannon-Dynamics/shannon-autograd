@@ -29,13 +29,25 @@ impl<T: DeviceCopy + Default> Array<T> {
     pub fn zeros_on(dev: &Device, n: usize) -> anyhow::Result<Self> {
         let buf = DeviceBuffer::<T>::zeroed(dev.stream(), n)
             .map_err(|e| anyhow!("allocating zeroed device buffer ({n} elems): {e:?}"))?;
-        Ok(Self { device: dev.clone(), buf, grad: None, len: n, requires_grad: false })
+        Ok(Self {
+            device: dev.clone(),
+            buf,
+            grad: None,
+            len: n,
+            requires_grad: false,
+        })
     }
 
     pub fn from_slice_on(dev: &Device, data: &[T]) -> anyhow::Result<Self> {
         let buf = DeviceBuffer::from_host(dev.stream(), data)
             .map_err(|e| anyhow!("uploading {} elems to device: {e:?}", data.len()))?;
-        Ok(Self { device: dev.clone(), buf, grad: None, len: data.len(), requires_grad: false })
+        Ok(Self {
+            device: dev.clone(),
+            buf,
+            grad: None,
+            len: data.len(),
+            requires_grad: false,
+        })
     }
 
     /// Read back to the host. Implicitly synchronizes — `to_host_vec` already
@@ -105,7 +117,6 @@ impl<T: DeviceCopy + Default> Array<T> {
             .copy_from_host(self.device.stream(), &zeros)
             .map_err(|e| anyhow!("zeroing {} elems: {e:?}", self.len))
     }
-
 }
 
 /// Bound-free accessors — `launch!`'s argument conversion must not require
@@ -171,6 +182,9 @@ mod tests {
         let mut a = Array::from_slice(&[1.0f32, 2.0, 3.0]).unwrap();
         a.copy_from_slice(&[4.0, 5.0, 6.0]).unwrap();
         assert_eq!(a.to_vec().unwrap(), vec![4.0, 5.0, 6.0]);
-        assert!(a.copy_from_slice(&[1.0]).is_err(), "length mismatch must error");
+        assert!(
+            a.copy_from_slice(&[1.0]).is_err(),
+            "length mismatch must error"
+        );
     }
 }

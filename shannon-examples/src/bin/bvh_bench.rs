@@ -14,7 +14,8 @@
 
 use anyhow::Result;
 use shannon_core::Vec3;
-use shannon_rt::{Array, Device, GpuTimer, ScopedTimer, launch};
+use shannon_kernels::launch;
+use shannon_rt::{Array, Device, GpuTimer, ScopedTimer};
 use shannon_spatial::{Bvh, brute_force_aabb, brute_force_ray, build_median_split};
 
 /// Per-query hit-list capacity for the validation kernels. At the Warp-mirrored
@@ -32,7 +33,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
     fn vec3(&mut self) -> Vec3 {
@@ -111,11 +115,7 @@ fn mean_stdev(xs: &[f64]) -> (f64, f64) {
 
 /// One GPU cell: 5 warm-up launches, sync, then `iters` × (event pair around
 /// one launch, sync via `elapsed_ms`). Returns (mean, stdev) device ms.
-fn bench_gpu<F: FnMut() -> Result<()>>(
-    dev: &Device,
-    iters: u32,
-    mut one: F,
-) -> Result<(f64, f64)> {
+fn bench_gpu<F: FnMut() -> Result<()>>(dev: &Device, iters: u32, mut one: F) -> Result<(f64, f64)> {
     for _ in 0..5 {
         one()?;
     }
@@ -158,8 +158,7 @@ fn check_three_way(
 ) {
     for i in 0..gpu_counts.len() {
         let reference = brute(i);
-        for (label, hits, counts) in
-            [("GPU", gpu_hits, gpu_counts), ("CPU", cpu_hits, cpu_counts)]
+        for (label, hits, counts) in [("GPU", gpu_hits, gpu_counts), ("CPU", cpu_hits, cpu_counts)]
         {
             let c = counts[i];
             assert!(
@@ -203,19 +202,69 @@ fn main() -> Result<()> {
     let mut cpu_hits = vec![0i32; m * MAX_HITS];
     let mut cpu_counts = vec![0i32; m];
 
-    launch!(bvh_hits_aabb, dim = m, (bvh.nodes(), &qlo, &qhi, MAX_HITS as u32, &mut hits, &mut counts))?;
-    shannon_cpu::bvh_hits_aabb(&nodes_host, &vq.lo, &vq.hi, MAX_HITS, &mut cpu_hits, &mut cpu_counts);
-    check_three_way("AABB", &hits.to_vec()?, &counts.to_vec()?, &cpu_hits, &cpu_counts, |i| {
-        brute_force_aabb(&aabbs, vq.lo[i], vq.hi[i])
-    });
+    launch!(
+        bvh_hits_aabb,
+        dim = m,
+        (
+            bvh.nodes(),
+            &qlo,
+            &qhi,
+            MAX_HITS as u32,
+            &mut hits,
+            &mut counts
+        )
+    )?;
+    shannon_cpu::bvh_hits_aabb(
+        &nodes_host,
+        &vq.lo,
+        &vq.hi,
+        MAX_HITS,
+        &mut cpu_hits,
+        &mut cpu_counts,
+    );
+    check_three_way(
+        "AABB",
+        &hits.to_vec()?,
+        &counts.to_vec()?,
+        &cpu_hits,
+        &cpu_counts,
+        |i| brute_force_aabb(&aabbs, vq.lo[i], vq.hi[i]),
+    );
     println!("✓ validation: AABB hit sets — GPU == brute == CPU ({m} queries × {n_bounds} bounds)");
 
-    launch!(bvh_hits_ray, dim = m, (bvh.nodes(), &qstart, &qdir, T_MAX, MAX_HITS as u32, &mut hits, &mut counts))?;
-    shannon_cpu::bvh_hits_ray(&nodes_host, &vq.start, &vq.dir, T_MAX, MAX_HITS, &mut cpu_hits, &mut cpu_counts);
-    check_three_way("ray", &hits.to_vec()?, &counts.to_vec()?, &cpu_hits, &cpu_counts, |i| {
-        brute_force_ray(&aabbs, vq.start[i], vq.dir[i], T_MAX)
-    });
-    println!("✓ validation: ray  hit sets — GPU == brute == CPU ({m} queries × {n_bounds} bounds)\n");
+    launch!(
+        bvh_hits_ray,
+        dim = m,
+        (
+            bvh.nodes(),
+            &qstart,
+            &qdir,
+            T_MAX,
+            MAX_HITS as u32,
+            &mut hits,
+            &mut counts
+        )
+    )?;
+    shannon_cpu::bvh_hits_ray(
+        &nodes_host,
+        &vq.start,
+        &vq.dir,
+        T_MAX,
+        MAX_HITS,
+        &mut cpu_hits,
+        &mut cpu_counts,
+    );
+    check_three_way(
+        "ray",
+        &hits.to_vec()?,
+        &counts.to_vec()?,
+        &cpu_hits,
+        &cpu_counts,
+        |i| brute_force_ray(&aabbs, vq.start[i], vq.dir[i], T_MAX),
+    );
+    println!(
+        "✓ validation: ray  hit sets — GPU == brute == CPU ({m} queries × {n_bounds} bounds)\n"
+    );
 
     // ── Phase 2: benchmark ─────────────────────────────────────────────────
     struct Row {
@@ -237,12 +286,26 @@ fn main() -> Result<()> {
 
         for workload in ["AABB", "ray"] {
             let gpu = bench_gpu(dev, iters, || match workload {
-                "AABB" => launch!(bvh_count_aabb, dim = m, (bvh.nodes(), &qlo, &qhi, &mut counts_gpu)),
-                _ => launch!(bvh_count_ray, dim = m, (bvh.nodes(), &qstart, &qdir, T_MAX, &mut counts_gpu)),
+                "AABB" => launch!(
+                    bvh_count_aabb,
+                    dim = m,
+                    (bvh.nodes(), &qlo, &qhi, &mut counts_gpu)
+                ),
+                _ => launch!(
+                    bvh_count_ray,
+                    dim = m,
+                    (bvh.nodes(), &qstart, &qdir, T_MAX, &mut counts_gpu)
+                ),
             })?;
             let cpu = bench_cpu(iters, || match workload {
                 "AABB" => shannon_cpu::bvh_count_aabb(&nodes_host, &qs.lo, &qs.hi, &mut counts_cpu),
-                _ => shannon_cpu::bvh_count_ray(&nodes_host, &qs.start, &qs.dir, T_MAX, &mut counts_cpu),
+                _ => shannon_cpu::bvh_count_ray(
+                    &nodes_host,
+                    &qs.start,
+                    &qs.dir,
+                    T_MAX,
+                    &mut counts_cpu,
+                ),
             });
             // The count kernels must agree at EVERY benchmarked size — phase 1
             // validated sets at 128; this pins the at-scale path too.
@@ -259,7 +322,12 @@ fn main() -> Result<()> {
                 gpu.1,
                 cpu.0 / gpu.0
             );
-            rows.push(Row { workload, m, cpu, gpu });
+            rows.push(Row {
+                workload,
+                m,
+                cpu,
+                gpu,
+            });
         }
     }
 

@@ -17,10 +17,13 @@
 //!   --width W --height H   resolution (default 960×540)
 
 use anyhow::Result;
-use shannon_core::scene_arm7::{ARM_L1, ARM_L2, ARM_L3, ARM_L4, H_SLOT_X, LETTER_Y, SHOULDER, TABLE_Z, finger_spread};
 use shannon_core::Vec3;
+use shannon_core::scene_arm7::{
+    ARM_L1, ARM_L2, ARM_L3, ARM_L4, H_SLOT_X, LETTER_Y, SHOULDER, TABLE_Z, finger_spread,
+};
 use shannon_examples::image;
-use shannon_rt::{Array, launch};
+use shannon_kernels::launch;
+use shannon_rt::Array;
 use std::time::Instant;
 
 const LOOP_T: f32 = 16.0;
@@ -73,7 +76,11 @@ fn ik(target: Vec3, grip: f32) -> Joints {
     // Azimuth: the arm faces +z at yaw 0 (toward the table).
     let rel = target - SHOULDER;
     let mut r = Vec3::new(rel.x, 0.0, rel.z);
-    r = if r.length_sq() > 1.0e-6 { r.normalize() } else { Vec3::new(0.0, 0.0, 1.0) };
+    r = if r.length_sq() > 1.0e-6 {
+        r.normalize()
+    } else {
+        Vec3::new(0.0, 0.0, 1.0)
+    };
 
     // Planar coordinates in the (r, up) plane.
     let a = ARM_L1;
@@ -98,7 +105,9 @@ fn ik(target: Vec3, grip: f32) -> Joints {
     // Angles measured from vertical (+y), positive toward r.
     let beta = dy.atan2(dr); // angle of the target from horizontal-r… converted below
     let beta = core::f32::consts::FRAC_PI_2 - beta; // …to from-vertical
-    let gamma = ((a * a + d * d - b * b) / (2.0 * a * d)).clamp(-1.0, 1.0).acos();
+    let gamma = ((a * a + d * d - b * b) / (2.0 * a * d))
+        .clamp(-1.0, 1.0)
+        .acos();
     let th1 = beta - gamma; // elbow-up
 
     let dir = |ang: f32| r * ang.sin() + up * ang.cos();
@@ -114,7 +123,14 @@ fn ik(target: Vec3, grip: f32) -> Joints {
     let spread = finger_spread(grip);
     let f1 = hand_end + fore * ARM_L4 + lat * spread;
     let f2 = hand_end + fore * ARM_L4 - lat * spread;
-    Joints { elbow, wrist, hand_end, f1, f2, tip: fore }
+    Joints {
+        elbow,
+        wrist,
+        hand_end,
+        f1,
+        f2,
+        tip: fore,
+    }
 }
 
 // ── The choreography (HTML phase labels, original-demo objective) ──────────
@@ -156,9 +172,23 @@ fn pose_at(t: f32) -> Pose {
     } else if t < T_RELEASE {
         (place, 0.85 - 0.65 * smooth((t - T_SNAP_START) / 0.7)) // RELEASING
     } else if t < 9.2 {
-        (lerp3(place, place + Vec3::new(0.0, 0.45, 0.0), smooth((t - T_RELEASE) / 1.3)), 0.2) // RETREATING
+        (
+            lerp3(
+                place,
+                place + Vec3::new(0.0, 0.45, 0.0),
+                smooth((t - T_RELEASE) / 1.3),
+            ),
+            0.2,
+        ) // RETREATING
     } else if t < 10.4 {
-        (lerp3(place + Vec3::new(0.0, 0.45, 0.0), wave_base, smooth((t - 9.2) / 1.2)), 0.5) // GREETING (rise)
+        (
+            lerp3(
+                place + Vec3::new(0.0, 0.45, 0.0),
+                wave_base,
+                smooth((t - 9.2) / 1.2),
+            ),
+            0.5,
+        ) // GREETING (rise)
     } else if t < 13.5 {
         // GREETING: wave to the camera.
         let env = smooth((t - 10.7) / 0.4) * (1.0 - smooth((t - 13.1) / 0.4));
@@ -195,7 +225,11 @@ fn fall(u: f32) -> (Vec3, f32) {
 
 fn letter_at(t: f32, joints: &Joints) -> LetterState {
     if t < T_GRAB {
-        return LetterState { pos: DROP_POS, yaw: DROP_YAW, carrying: 0.0 };
+        return LetterState {
+            pos: DROP_POS,
+            yaw: DROP_YAW,
+            carrying: 0.0,
+        };
     }
     if t < T_RELEASE {
         // Carried: hang at the finger tips, un-yaw in flight, snap into the slot.
@@ -207,13 +241,25 @@ fn letter_at(t: f32, joints: &Joints) -> LetterState {
         } else {
             tracked
         };
-        return LetterState { pos, yaw, carrying: 1.0 };
+        return LetterState {
+            pos,
+            yaw,
+            carrying: 1.0,
+        };
     }
     if t < T_BUMP_HIT {
-        return LetterState { pos: SLOT_POS, yaw: 0.0, carrying: 0.0 };
+        return LetterState {
+            pos: SLOT_POS,
+            yaw: 0.0,
+            carrying: 0.0,
+        };
     }
     let (pos, yaw) = fall((t - T_BUMP_HIT) / FALL_DUR);
-    LetterState { pos, yaw, carrying: 0.0 }
+    LetterState {
+        pos,
+        yaw,
+        carrying: 0.0,
+    }
 }
 
 // ── Rendering plumbing ──────────────────────────────────────────────────────
@@ -235,9 +281,22 @@ fn render(f: &Frame, w: u32, h: u32, pixels: &mut Array<Vec3>) -> Result<Vec<Vec
     launch!(
         draw_arm7,
         dim = n,
-        (f.joints.elbow, f.joints.wrist, f.joints.hand_end, f.joints.f1, f.joints.f2,
-         f.letter.pos, f.letter.yaw, f.letter.carrying,
-         CAM_AZ, CAM_EL, CAM_DIST, w, h, &mut *pixels)
+        (
+            f.joints.elbow,
+            f.joints.wrist,
+            f.joints.hand_end,
+            f.joints.f1,
+            f.joints.f2,
+            f.letter.pos,
+            f.letter.yaw,
+            f.letter.carrying,
+            CAM_AZ,
+            CAM_EL,
+            CAM_DIST,
+            w,
+            h,
+            &mut *pixels
+        )
     )?;
     pixels.to_vec()
 }
@@ -250,7 +309,12 @@ struct Args {
 }
 
 fn parse_args() -> Args {
-    let mut a = Args { width: 960, height: 540, frames: None, still: None };
+    let mut a = Args {
+        width: 960,
+        height: 540,
+        frames: None,
+        still: None,
+    };
     let argv: Vec<String> = std::env::args().collect();
     let mut i = 1;
     while i < argv.len() {
@@ -268,7 +332,10 @@ fn parse_args() -> Args {
                 i += 2;
             }
             "--still" => {
-                a.still = Some((argv[i + 1].parse().expect("--still <t> <name>"), argv[i + 2].clone()));
+                a.still = Some((
+                    argv[i + 1].parse().expect("--still <t> <name>"),
+                    argv[i + 2].clone(),
+                ));
                 i += 3;
             }
             "--parity" => i += 1,
@@ -303,16 +370,40 @@ fn main() -> Result<()> {
         launch!(
             draw_arm7,
             dim = pn,
-            (f.joints.elbow, f.joints.wrist, f.joints.hand_end, f.joints.f1, f.joints.f2,
-             f.letter.pos, f.letter.yaw, f.letter.carrying,
-             CAM_AZ, CAM_EL, CAM_DIST, PW, PH, &mut small)
+            (
+                f.joints.elbow,
+                f.joints.wrist,
+                f.joints.hand_end,
+                f.joints.f1,
+                f.joints.f2,
+                f.letter.pos,
+                f.letter.yaw,
+                f.letter.carrying,
+                CAM_AZ,
+                CAM_EL,
+                CAM_DIST,
+                PW,
+                PH,
+                &mut small
+            )
         )?;
         let a = small.to_vec()?;
         let mut b = vec![Vec3::ZERO; pn];
         shannon_cpu::draw_arm7(
-            f.joints.elbow, f.joints.wrist, f.joints.hand_end, f.joints.f1, f.joints.f2,
-            f.letter.pos, f.letter.yaw, f.letter.carrying,
-            CAM_AZ, CAM_EL, CAM_DIST, PW, PH, &mut b,
+            f.joints.elbow,
+            f.joints.wrist,
+            f.joints.hand_end,
+            f.joints.f1,
+            f.joints.f2,
+            f.letter.pos,
+            f.letter.yaw,
+            f.letter.carrying,
+            CAM_AZ,
+            CAM_EL,
+            CAM_DIST,
+            PW,
+            PH,
+            &mut b,
         );
         let (mut worst, mut over) = (0.0f32, 0usize);
         for i in 0..pn {
@@ -324,9 +415,15 @@ fn main() -> Result<()> {
             }
         }
         // Robust criterion: branch-boundary pixels may legitimately differ.
-        assert!(over as f32 / pn as f32 <= 0.005, "{over}/{pn} pixels exceed 1e-3");
+        assert!(
+            over as f32 / pn as f32 <= 0.005,
+            "{over}/{pn} pixels exceed 1e-3"
+        );
         assert!(worst <= 5e-2, "worst channel delta {worst}");
-        println!("✓ CPU == GPU at {PW}×{PH} ({:.2}% >1e-3, worst {worst:.2e})", 100.0 * over as f32 / pn as f32);
+        println!(
+            "✓ CPU == GPU at {PW}×{PH} ({:.2}% >1e-3, worst {worst:.2e})",
+            100.0 * over as f32 / pn as f32
+        );
         return Ok(());
     }
 
@@ -386,7 +483,10 @@ fn main() -> Result<()> {
 
         frames += 1;
         if last_report.elapsed().as_secs_f32() > 2.0 {
-            println!("{:.1} fps", frames as f32 / last_report.elapsed().as_secs_f32());
+            println!(
+                "{:.1} fps",
+                frames as f32 / last_report.elapsed().as_secs_f32()
+            );
             frames = 0;
             last_report = Instant::now();
         }

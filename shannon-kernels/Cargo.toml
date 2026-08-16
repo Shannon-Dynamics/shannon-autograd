@@ -11,6 +11,7 @@ license.workspace = true
 # hold Vec3/Mat33 fields whose DeviceCopy impls live behind this feature.
 shannon-core   = { workspace = true, features = ["cuda"] }
 shannon-device = { workspace = true }   # ← the grad sinks, imported not defined
+shannon-rt     = { workspace = true }   # ← define_module_cache!/launch_in! + AsKernelArg
 cuda-device    = { workspace = true }
 cuda-core      = { workspace = true }
 cuda-host      = { workspace = true }

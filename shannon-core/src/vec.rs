@@ -20,8 +20,16 @@ pub struct Vec3 {
 }
 
 impl Vec3 {
-    pub const ZERO: Self = Self { x: 0.0, y: 0.0, z: 0.0 };
-    pub const ONE: Self = Self { x: 1.0, y: 1.0, z: 1.0 };
+    pub const ZERO: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+    };
+    pub const ONE: Self = Self {
+        x: 1.0,
+        y: 1.0,
+        z: 1.0,
+    };
 
     #[inline(always)]
     pub const fn new(x: f32, y: f32, z: f32) -> Self {
@@ -59,16 +67,28 @@ impl Vec3 {
     #[inline(always)]
     pub fn normalize(self) -> Self {
         let len = self.length();
-        if len > crate::EPS { self * (1.0 / len) } else { Self::ZERO }
+        if len > crate::EPS {
+            self * (1.0 / len)
+        } else {
+            Self::ZERO
+        }
     }
 
     #[inline(always)]
     pub fn cw_min(self, o: Self) -> Self {
-        Self::new(math::min(self.x, o.x), math::min(self.y, o.y), math::min(self.z, o.z))
+        Self::new(
+            math::min(self.x, o.x),
+            math::min(self.y, o.y),
+            math::min(self.z, o.z),
+        )
     }
     #[inline(always)]
     pub fn cw_max(self, o: Self) -> Self {
-        Self::new(math::max(self.x, o.x), math::max(self.y, o.y), math::max(self.z, o.z))
+        Self::new(
+            math::max(self.x, o.x),
+            math::max(self.y, o.y),
+            math::max(self.z, o.z),
+        )
     }
     #[inline(always)]
     pub fn abs(self) -> Self {
@@ -196,7 +216,11 @@ impl Vec2 {
     #[inline(always)]
     pub fn normalize(self) -> Self {
         let len = self.length();
-        if len > crate::EPS { self * (1.0 / len) } else { Self::ZERO }
+        if len > crate::EPS {
+            self * (1.0 / len)
+        } else {
+            Self::ZERO
+        }
     }
 }
 
@@ -269,8 +293,18 @@ pub struct Vec4 {
 }
 
 impl Vec4 {
-    pub const ZERO: Self = Self { x: 0.0, y: 0.0, z: 0.0, w: 0.0 };
-    pub const ONE: Self = Self { x: 1.0, y: 1.0, z: 1.0, w: 1.0 };
+    pub const ZERO: Self = Self {
+        x: 0.0,
+        y: 0.0,
+        z: 0.0,
+        w: 0.0,
+    };
+    pub const ONE: Self = Self {
+        x: 1.0,
+        y: 1.0,
+        z: 1.0,
+        w: 1.0,
+    };
 
     #[inline(always)]
     pub const fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
@@ -295,7 +329,11 @@ impl Vec4 {
     #[inline(always)]
     pub fn normalize(self) -> Self {
         let len = self.length();
-        if len > crate::EPS { self * (1.0 / len) } else { Self::ZERO }
+        if len > crate::EPS {
+            self * (1.0 / len)
+        } else {
+            Self::ZERO
+        }
     }
     /// The xyz part — convenient for plane equations (`Vec4` as `(n, d)`).
     #[inline(always)]

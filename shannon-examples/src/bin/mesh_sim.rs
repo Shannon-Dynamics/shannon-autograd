@@ -24,7 +24,8 @@ use anyhow::Result;
 use shannon_core::mesh::mesh_eval_position;
 use shannon_core::{MeshQuery, Particle, Vec3};
 use shannon_examples::obj::{write_obj, write_obj_points};
-use shannon_rt::{Array, Device, launch};
+use shannon_kernels::launch;
+use shannon_rt::{Array, Device};
 use shannon_spatial::shapes::grid;
 use shannon_spatial::{Mesh, brute_force_closest_point};
 use std::path::PathBuf;
@@ -50,7 +51,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
 }
@@ -158,7 +162,11 @@ fn assert_queries_agree(
     indices: &[i32],
     query_point: Vec3,
 ) {
-    assert_eq!(got.face >= 0, reference.face >= 0, "{label} query {i}: found-flags diverge");
+    assert_eq!(
+        got.face >= 0,
+        reference.face >= 0,
+        "{label} query {i}: found-flags diverge"
+    );
     if got.face < 0 {
         return;
     }
@@ -186,7 +194,18 @@ fn three_way_check(mesh: &Mesh, ps: &[Particle], frame: usize) -> Result<()> {
 
     let q_dev = Array::from_slice(&queries)?;
     let mut out_gpu = Array::<MeshQuery>::zeros(m)?;
-    launch!(mesh_query, dim = m, (mesh.nodes(), mesh.points(), mesh.indices(), &q_dev, CHECK_MAX_DIST, &mut out_gpu))?;
+    launch!(
+        mesh_query,
+        dim = m,
+        (
+            mesh.nodes(),
+            mesh.points(),
+            mesh.indices(),
+            &q_dev,
+            CHECK_MAX_DIST,
+            &mut out_gpu
+        )
+    )?;
     let gpu = out_gpu.to_vec()?;
 
     let mut cpu: Vec<MeshQuery> = vec![MeshQuery::default(); m];
@@ -200,9 +219,26 @@ fn three_way_check(mesh: &Mesh, ps: &[Particle], frame: usize) -> Result<()> {
     );
 
     for i in 0..m {
-        let brute = brute_force_closest_point(&pts, mesh.host_indices(), queries[i], CHECK_MAX_DIST);
-        assert_queries_agree("GPU", i, &gpu[i], &brute, &pts, mesh.host_indices(), queries[i]);
-        assert_queries_agree("CPU", i, &cpu[i], &brute, &pts, mesh.host_indices(), queries[i]);
+        let brute =
+            brute_force_closest_point(&pts, mesh.host_indices(), queries[i], CHECK_MAX_DIST);
+        assert_queries_agree(
+            "GPU",
+            i,
+            &gpu[i],
+            &brute,
+            &pts,
+            mesh.host_indices(),
+            queries[i],
+        );
+        assert_queries_agree(
+            "CPU",
+            i,
+            &cpu[i],
+            &brute,
+            &pts,
+            mesh.host_indices(),
+            queries[i],
+        );
     }
     println!("✓ frame {frame}: three-way closest-point check — GPU == brute == CPU ({m} samples)");
     Ok(())
@@ -240,11 +276,27 @@ fn main() -> Result<()> {
 
         // deform → refit → simulate: the critical ordering. The query kernel
         // must traverse bounds refreshed from the very points it reads.
-        launch!(mesh_deform, dim = n_verts, (&rest_arr, phase, AMP, mesh.points_mut()))?;
+        launch!(
+            mesh_deform,
+            dim = n_verts,
+            (&rest_arr, phase, AMP, mesh.points_mut())
+        )?;
         mesh.refit()?;
-        launch!(sim_particles, dim = args.particles,
-                (&parts_a, mesh.nodes(), mesh.points(), mesh.indices(),
-                 MARGIN, DT, MAX_DIST, Y_FLOOR, &mut parts_b))?;
+        launch!(
+            sim_particles,
+            dim = args.particles,
+            (
+                &parts_a,
+                mesh.nodes(),
+                mesh.points(),
+                mesh.indices(),
+                MARGIN,
+                DT,
+                MAX_DIST,
+                Y_FLOOR,
+                &mut parts_b
+            )
+        )?;
         std::mem::swap(&mut parts_a, &mut parts_b);
 
         let ps = parts_a.to_vec()?;
@@ -254,7 +306,11 @@ fn main() -> Result<()> {
         }
         if args.dump_every > 0 && frame % args.dump_every == 0 {
             let pts = mesh.points().to_vec()?;
-            write_obj(&args.out_dir.join(format!("mesh_{frame:04}.obj")), &pts, &idx)?;
+            write_obj(
+                &args.out_dir.join(format!("mesh_{frame:04}.obj")),
+                &pts,
+                &idx,
+            )?;
             write_obj_points(
                 &args.out_dir.join(format!("parts_{frame:04}.obj")),
                 &ps.iter().map(|p| p.pos).collect::<Vec<_>>(),
@@ -268,10 +324,15 @@ fn main() -> Result<()> {
     }
 
     // ── Settle predicate (frame N): resting particles track the surface ────
-    let max_v = last_ps.iter().map(|p| p.vel.length()).fold(0.0f32, f32::max);
-    let mean_v =
-        last_ps.iter().map(|p| p.vel.length()).sum::<f32>() / last_ps.len() as f32;
-    println!("\nsettle @ frame {}: max |v| = {max_v:.4}, mean |v| = {mean_v:.4}", args.frames);
+    let max_v = last_ps
+        .iter()
+        .map(|p| p.vel.length())
+        .fold(0.0f32, f32::max);
+    let mean_v = last_ps.iter().map(|p| p.vel.length()).sum::<f32>() / last_ps.len() as f32;
+    println!(
+        "\nsettle @ frame {}: max |v| = {max_v:.4}, mean |v| = {mean_v:.4}",
+        args.frames
+    );
     assert!(max_v < 0.25, "settle failed: max |v| = {max_v} ≥ 0.25");
     assert!(mean_v < 0.05, "settle failed: mean |v| = {mean_v} ≥ 0.05");
 

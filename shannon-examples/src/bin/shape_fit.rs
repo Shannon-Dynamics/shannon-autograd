@@ -25,7 +25,8 @@ use shannon_core::vec::{vec3s_as_f32s, vec3s_as_f32s_mut};
 use shannon_core::{MeshQuery, Vec3};
 use shannon_examples::obj::{read_obj, write_obj};
 use shannon_examples::ops;
-use shannon_rt::{Array, launch};
+use shannon_kernels::launch;
+use shannon_rt::Array;
 use shannon_spatial::Mesh;
 use shannon_spatial::shapes::{icosphere, torus};
 use std::path::PathBuf;
@@ -41,7 +42,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
 }
@@ -190,7 +194,10 @@ fn part0_chain_check() -> Result<()> {
     let g = x.grad().ok_or_else(|| anyhow!("x has no grad"))?.to_vec()?;
     let l = loss.to_vec()?[0];
     let expect_l: f32 = x_host.iter().map(|&a| (a * SCALE + BIAS).sin()).sum();
-    ensure!((l - expect_l).abs() < 1e-4, "chain forward: {l} vs {expect_l}");
+    ensure!(
+        (l - expect_l).abs() < 1e-4,
+        "chain forward: {l} vs {expect_l}"
+    );
     for i in 0..N {
         let want = SCALE * (x_host[i] * SCALE + BIAS).cos();
         ensure!(
@@ -233,7 +240,10 @@ fn part1_l2_sgd(args: &Args, source: &[Vec3], target_verts: &[Vec3]) -> Result<(
 
         // STEP
         let l = loss.to_vec()?[0];
-        let g = params.grad().ok_or_else(|| anyhow!("params has no grad"))?.to_vec()?;
+        let g = params
+            .grad()
+            .ok_or_else(|| anyhow!("params has no grad"))?
+            .to_vec()?;
 
         if iter == 0 {
             loss0 = l;
@@ -263,8 +273,11 @@ fn part1_l2_sgd(args: &Args, source: &[Vec3], target_verts: &[Vec3]) -> Result<(
         prev <= 1e-4 * loss0,
         "stage 1: final loss {prev} not ≥4 orders below initial {loss0}"
     );
-    println!("✓ stage 1: monotone, {loss0:.3e} → {prev:.3e} ({:.1} orders) over {} iters ({n} verts)",
-        (loss0 / prev).log10(), args.iters);
+    println!(
+        "✓ stage 1: monotone, {loss0:.3e} → {prev:.3e} ({:.1} orders) over {} iters ({n} verts)",
+        (loss0 / prev).log10(),
+        args.iters
+    );
     Ok(())
 }
 
@@ -295,10 +308,20 @@ fn cross_backend_grad_check(
     let adj_loss = [1.0f32];
     let mut host_grad = vec![Vec3::ZERO; host_params.len()];
     shannon_cpu::adj_chamfer_ab(
-        host_params, corr_ab, target_verts, target_indices, &adj_loss, &mut host_grad,
+        host_params,
+        corr_ab,
+        target_verts,
+        target_indices,
+        &adj_loss,
+        &mut host_grad,
     );
     shannon_cpu::adj_chamfer_ba(
-        target_verts, corr_ba, host_params, src_indices, &adj_loss, &mut host_grad,
+        target_verts,
+        corr_ba,
+        host_params,
+        src_indices,
+        &adj_loss,
+        &mut host_grad,
     );
 
     // Relative 1e-3 with max(1,·) denominators — NEVER bit-exact: float
@@ -382,17 +405,49 @@ fn part2_chamfer_adam(
         // stale correspondence would optimize toward a frozen snapshot.
         let mut tape = Tape::new();
         tape.pause();
-        launch!(mesh_query, dim = n_src,
-            (tgt_mesh.nodes(), tgt_mesh.points(), tgt_mesh.indices(),
-             src_mesh.points(), MAX_DIST, &mut corr_ab))?;
-        launch!(mesh_query, dim = n_tgt,
-            (src_mesh.nodes(), src_mesh.points(), src_mesh.indices(),
-             &tgt_verts_arr, MAX_DIST, &mut corr_ba))?;
+        launch!(
+            mesh_query,
+            dim = n_src,
+            (
+                tgt_mesh.nodes(),
+                tgt_mesh.points(),
+                tgt_mesh.indices(),
+                src_mesh.points(),
+                MAX_DIST,
+                &mut corr_ab
+            )
+        )?;
+        launch!(
+            mesh_query,
+            dim = n_tgt,
+            (
+                src_mesh.nodes(),
+                src_mesh.points(),
+                src_mesh.indices(),
+                &tgt_verts_arr,
+                MAX_DIST,
+                &mut corr_ba
+            )
+        )?;
         tape.resume();
 
         let spts = src_mesh.points();
-        ops::chamfer_ab_op(&mut tape, spts, &corr_ab, tgt_mesh.points(), tgt_mesh.indices(), &loss)?;
-        ops::chamfer_ba_op(&mut tape, &tgt_verts_arr, &corr_ba, spts, src_mesh.indices(), &loss)?;
+        ops::chamfer_ab_op(
+            &mut tape,
+            spts,
+            &corr_ab,
+            tgt_mesh.points(),
+            tgt_mesh.indices(),
+            &loss,
+        )?;
+        ops::chamfer_ba_op(
+            &mut tape,
+            &tgt_verts_arr,
+            &corr_ba,
+            spts,
+            src_mesh.indices(),
+            &loss,
+        )?;
         tape.backward()?;
 
         // STEP
@@ -414,8 +469,14 @@ fn part2_chamfer_adam(
         }
         if iter == 0 || iter == 100 {
             cross_backend_grad_check(
-                iter, &host_params, src_idx, tgt_verts, tgt_idx,
-                &corr_ab.to_vec()?, &corr_ba.to_vec()?, &g,
+                iter,
+                &host_params,
+                src_idx,
+                tgt_verts,
+                tgt_idx,
+                &corr_ab.to_vec()?,
+                &corr_ba.to_vec()?,
+                &g,
             )?;
         }
         running_min = running_min.min(l);
@@ -446,7 +507,11 @@ fn part2_chamfer_adam(
             println!("  stage2 iter {iter:3}  loss {l:.6e}");
         }
         if args.dump_every > 0 && iter % args.dump_every == 0 {
-            write_obj(&args.out_dir.join(format!("fit_{iter:04}.obj")), &host_params, src_idx)?;
+            write_obj(
+                &args.out_dir.join(format!("fit_{iter:04}.obj")),
+                &host_params,
+                src_idx,
+            )?;
         }
     }
 
@@ -536,13 +601,23 @@ fn main() -> Result<()> {
             (v, i, false)
         }
     };
-    println!("— Part 2: stage 2, symmetric Chamfer + Adam (lr {}) —", args.lr2);
-    part2_chamfer_adam(&args, (&src_verts, &src_idx), (&tgt_verts, &tgt_idx), enforce)?;
+    println!(
+        "— Part 2: stage 2, symmetric Chamfer + Adam (lr {}) —",
+        args.lr2
+    );
+    part2_chamfer_adam(
+        &args,
+        (&src_verts, &src_idx),
+        (&tgt_verts, &tgt_idx),
+        enforce,
+    )?;
 
     if enforce {
         println!("\n✅ SHAPE FIT ACCEPTANCE PASSED");
     } else {
-        println!("\n(showcase target — acceptance predicates waived; run without --target for the acceptance form)");
+        println!(
+            "\n(showcase target — acceptance predicates waived; run without --target for the acceptance form)"
+        );
     }
     Ok(())
 }

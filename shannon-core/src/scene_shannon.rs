@@ -171,7 +171,11 @@ fn arm_sdf(p: Vec3, s1: Vec3, s2: Vec3, grip_dir: Vec3, grip: f32) -> f32 {
     // Lateral axis degenerates when grip_dir ∥ up (top-down grabs) — fall back to x.
     let up = Vec3::new(0.0, 1.0, 0.0);
     let raw_lat = grip_dir.cross(up);
-    let lat = if raw_lat.length_sq() > 1.0e-6 { raw_lat.normalize() } else { Vec3::new(1.0, 0.0, 0.0) };
+    let lat = if raw_lat.length_sq() > 1.0e-6 {
+        raw_lat.normalize()
+    } else {
+        Vec3::new(1.0, 0.0, 0.0)
+    };
     let w = 0.028 + (1.0 - grip) * 0.038;
     let fa = s2 + grip_dir * 0.02;
     let fb = s2 + grip_dir * 0.17;
@@ -192,7 +196,15 @@ fn h_letter_sdf(p: Vec3, h_pos: Vec3, h_rot: Quat) -> f32 {
 
 /// Full scene SDF.
 #[inline(always)]
-pub fn scene(p: Vec3, s1: Vec3, s2: Vec3, grip_dir: Vec3, grip: f32, h_pos: Vec3, h_rot: Quat) -> f32 {
+pub fn scene(
+    p: Vec3,
+    s1: Vec3,
+    s2: Vec3,
+    grip_dir: Vec3,
+    grip: f32,
+    h_pos: Vec3,
+    h_rot: Quat,
+) -> f32 {
     let ground = sdf::plane(p, Vec4::new(0.0, 1.0, 0.0, 0.0));
     let mut d = ground;
     d = math::min(d, table_sdf(p));
@@ -204,7 +216,15 @@ pub fn scene(p: Vec3, s1: Vec3, s2: Vec3, grip_dir: Vec3, grip: f32, h_pos: Vec3
 
 /// Material id at a hit point (argmin re-evaluation — hit points only).
 #[inline(always)]
-fn material(p: Vec3, s1: Vec3, s2: Vec3, grip_dir: Vec3, grip: f32, h_pos: Vec3, h_rot: Quat) -> u32 {
+fn material(
+    p: Vec3,
+    s1: Vec3,
+    s2: Vec3,
+    grip_dir: Vec3,
+    grip: f32,
+    h_pos: Vec3,
+    h_rot: Quat,
+) -> u32 {
     let dg = sdf::plane(p, Vec4::new(0.0, 1.0, 0.0, 0.0));
     let dt = table_sdf(p);
     let dl = letters_sdf(p);
@@ -212,10 +232,21 @@ fn material(p: Vec3, s1: Vec3, s2: Vec3, grip_dir: Vec3, grip: f32, h_pos: Vec3,
     let da = arm_sdf(p, s1, s2, grip_dir, grip);
     let mut id = 0u32;
     let mut best = dg;
-    if dt < best { best = dt; id = 1; }
-    if dl < best { best = dl; id = 2; }
-    if dh < best { best = dh; id = 3; }
-    if da < best { id = 4; }
+    if dt < best {
+        best = dt;
+        id = 1;
+    }
+    if dl < best {
+        best = dl;
+        id = 2;
+    }
+    if dh < best {
+        best = dh;
+        id = 3;
+    }
+    if da < best {
+        id = 4;
+    }
     id
 }
 
@@ -242,7 +273,7 @@ fn normal(p: Vec3, s1: Vec3, s2: Vec3, gd: Vec3, g: f32, hp: Vec3, hr: Quat) -> 
         + e2 * scene(p + e2 * E, s1, s2, gd, g, hp, hr)
         + e3 * scene(p + e3 * E, s1, s2, gd, g, hp, hr)
         + e4 * scene(p + e4 * E, s1, s2, gd, g, hp, hr))
-        .normalize()
+    .normalize()
 }
 
 /// Soft shadow — same formulation as the proven W1 scene (Warp's reference).

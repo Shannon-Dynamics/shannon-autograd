@@ -96,7 +96,9 @@ pub fn sum_scalar(x: &[f32], loss: &mut [f32]) {
 pub fn adj_sum_scalar(adj_loss: &[f32], adj_x: &mut [f32]) {
     let n = adj_x.len();
     let sink = HostGradF32::new(adj_x);
-    (0..n).into_par_iter().for_each(|i| shannon_core::loss::adj_sum_at(i, adj_loss, &sink));
+    (0..n)
+        .into_par_iter()
+        .for_each(|i| shannon_core::loss::adj_sum_at(i, adj_loss, &sink));
 }
 
 /// FORWARD reduction: loss[0] += Σ ½‖xᵢ − tᵢ‖².
@@ -121,14 +123,21 @@ pub fn chamfer_ab(src: &[Vec3], corr: &[MeshQuery], tp: &[Vec3], ti: &[i32], los
     let sink = HostGradF32::new(loss);
     (0..src.len()).into_par_iter().for_each(|i| {
         use shannon_core::GradSink;
-        sink.accumulate(0, shannon_core::loss::chamfer_ab_term_at(i, src, corr, tp, ti));
+        sink.accumulate(
+            0,
+            shannon_core::loss::chamfer_ab_term_at(i, src, corr, tp, ti),
+        );
     });
 }
 
 /// ADJOINT of chamfer_ab: envelope — src̄ᵢ += (srcᵢ − p)·loss̄.
 pub fn adj_chamfer_ab(
-    src: &[Vec3], corr: &[MeshQuery], tp: &[Vec3], ti: &[i32],
-    adj_loss: &[f32], adj_src: &mut [Vec3],
+    src: &[Vec3],
+    corr: &[MeshQuery],
+    tp: &[Vec3],
+    ti: &[i32],
+    adj_loss: &[f32],
+    adj_src: &mut [Vec3],
 ) {
     let sink = HostGradVec3::new(adj_src);
     (0..src.len())
@@ -141,15 +150,22 @@ pub fn chamfer_ba(tv: &[Vec3], corr: &[MeshQuery], sp: &[Vec3], si: &[i32], loss
     let sink = HostGradF32::new(loss);
     (0..tv.len()).into_par_iter().for_each(|i| {
         use shannon_core::GradSink;
-        sink.accumulate(0, shannon_core::loss::chamfer_ba_term_at(i, tv, corr, sp, si));
+        sink.accumulate(
+            0,
+            shannon_core::loss::chamfer_ba_term_at(i, tv, corr, sp, si),
+        );
     });
 }
 
 /// ADJOINT of chamfer_ba: the canonical gather→scatter into the source
 /// points' gradients through the barycentric weights.
 pub fn adj_chamfer_ba(
-    tv: &[Vec3], corr: &[MeshQuery], sp: &[Vec3], si: &[i32],
-    adj_loss: &[f32], adj_sp: &mut [Vec3],
+    tv: &[Vec3],
+    corr: &[MeshQuery],
+    sp: &[Vec3],
+    si: &[i32],
+    adj_loss: &[f32],
+    adj_sp: &mut [Vec3],
 ) {
     let sink = HostGradVec3::new(adj_sp);
     (0..tv.len())
@@ -163,8 +179,8 @@ pub fn adj_chamfer_ba(
 // wrap args + call in std::hint::black_box (Day-3 plan §4.C). GPU launches
 // need neither — they bottom out in FFI, which cannot be elided.
 
-use shannon_kernels::bench::{BenchS0, BenchSa, BenchSf, BenchSm, BenchSv, BenchSz};
 use shannon_core::Mat33;
+use shannon_kernels::bench::{BenchS0, BenchSa, BenchSf, BenchSm, BenchSv, BenchSz};
 
 #[inline(never)]
 pub fn bench_k0() {}
@@ -179,10 +195,17 @@ pub fn bench_ka(_a: &[f32], _b: &[f32], _c: &[f32]) {}
 #[inline(never)]
 #[allow(clippy::too_many_arguments)]
 pub fn bench_kz(
-    _a: &[f32], _b: &[f32], _c: &[f32],
-    _x: f32, _y: f32, _z: f32,
-    _u: Vec3, _v: Vec3, _w: Vec3,
-) {}
+    _a: &[f32],
+    _b: &[f32],
+    _c: &[f32],
+    _x: f32,
+    _y: f32,
+    _z: f32,
+    _u: Vec3,
+    _v: Vec3,
+    _w: Vec3,
+) {
+}
 #[inline(never)]
 pub fn bench_s0(_s: BenchS0) {}
 #[inline(never)]
@@ -228,8 +251,10 @@ pub fn bvh_hits_aabb(
     hits: &mut [i32],
     counts: &mut [i32],
 ) {
-    hits.par_chunks_mut(max_hits).zip(counts.par_iter_mut()).enumerate().for_each(
-        |(i, (chunk, out))| {
+    hits.par_chunks_mut(max_hits)
+        .zip(counts.par_iter_mut())
+        .enumerate()
+        .for_each(|(i, (chunk, out))| {
             let mut c = 0usize;
             for prim in shannon_core::bvh::query_aabb(nodes, lowers[i], uppers[i]) {
                 if c < max_hits {
@@ -238,8 +263,7 @@ pub fn bvh_hits_aabb(
                 c += 1;
             }
             *out = c as i32;
-        },
-    );
+        });
 }
 
 #[allow(clippy::too_many_arguments)] // arity mirrors the GPU kernel
@@ -252,8 +276,10 @@ pub fn bvh_hits_ray(
     hits: &mut [i32],
     counts: &mut [i32],
 ) {
-    hits.par_chunks_mut(max_hits).zip(counts.par_iter_mut()).enumerate().for_each(
-        |(i, (chunk, out))| {
+    hits.par_chunks_mut(max_hits)
+        .zip(counts.par_iter_mut())
+        .enumerate()
+        .for_each(|(i, (chunk, out))| {
             let mut c = 0usize;
             for prim in shannon_core::bvh::query_ray(nodes, starts[i], dirs[i], t_max) {
                 if c < max_hits {
@@ -262,6 +288,5 @@ pub fn bvh_hits_ray(
                 c += 1;
             }
             *out = c as i32;
-        },
-    );
+        });
 }

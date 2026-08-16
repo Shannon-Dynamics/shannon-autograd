@@ -56,7 +56,12 @@ fn recurse(
     }
 
     if let [prim] = *indices {
-        nodes[id as usize] = BvhNode { lower: lo, left: prim, upper: hi, right: -1 };
+        nodes[id as usize] = BvhNode {
+            lower: lo,
+            left: prim,
+            upper: hi,
+            right: -1,
+        };
         return id;
     }
 
@@ -85,7 +90,12 @@ fn recurse(
     let (left_half, right_half) = indices.split_at_mut(mid);
     let left = recurse(aabbs, centroids, left_half, nodes);
     let right = recurse(aabbs, centroids, right_half, nodes);
-    nodes[id as usize] = BvhNode { lower: lo, left, upper: hi, right };
+    nodes[id as usize] = BvhNode {
+        lower: lo,
+        left,
+        upper: hi,
+        right,
+    };
     id
 }
 
@@ -134,7 +144,10 @@ impl Bvh {
     /// Build on the host (median split) and upload.
     pub fn build(aabbs: &[(Vec3, Vec3)]) -> Result<Self> {
         let nodes = build_median_split(aabbs);
-        Ok(Self { nodes: Array::from_slice(&nodes)?, n_prims: aabbs.len() })
+        Ok(Self {
+            nodes: Array::from_slice(&nodes)?,
+            n_prims: aabbs.len(),
+        })
     }
 
     /// The device-resident node buffer — what kernels take as `&[BvhNode]`.

@@ -66,7 +66,9 @@ pub fn belt_deform_at(
     belt_speed: f32,
 ) -> Vec3 {
     let p = rest[i];
-    let y = belt_surface_y(p.x, p.z, t, groove_amp, lane_w, ripple_amp, ripple_k, belt_speed);
+    let y = belt_surface_y(
+        p.x, p.z, t, groove_amp, lane_w, ripple_amp, ripple_k, belt_speed,
+    );
     Vec3::new(p.x, y, p.z)
 }
 
@@ -145,5 +147,8 @@ pub fn conveyor_step_at(
         v_out = v_n + v_t;
     }
 
-    Particle { pos: xpred, vel: v_out }
+    Particle {
+        pos: xpred,
+        vel: v_out,
+    }
 }

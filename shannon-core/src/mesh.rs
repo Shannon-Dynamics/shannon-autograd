@@ -36,7 +36,12 @@ pub struct MeshQuery {
 
 impl MeshQuery {
     pub const fn miss() -> Self {
-        Self { face: -1, u: 0.0, v: 0.0, dist: f32::INFINITY }
+        Self {
+            face: -1,
+            u: 0.0,
+            v: 0.0,
+            dist: f32::INFINITY,
+        }
     }
 }
 
@@ -216,7 +221,12 @@ pub fn mesh_query_point(
             let d_sq = (cp - p).length_sq();
             if d_sq < best_sq {
                 best_sq = d_sq;
-                best = MeshQuery { face, u, v, dist: 0.0 }; // dist patched below
+                best = MeshQuery {
+                    face,
+                    u,
+                    v,
+                    dist: 0.0,
+                }; // dist patched below
             }
         } else {
             // Interior: order children so the NEARER one is popped first — it
@@ -225,8 +235,11 @@ pub fn mesh_query_point(
             let r = nodes[n.right as usize];
             let dl = distance_to_aabb_sq(p, l.lower, l.upper);
             let dr = distance_to_aabb_sq(p, r.lower, r.upper);
-            let (near, near_d, far, far_d) =
-                if dl <= dr { (n.left, dl, n.right, dr) } else { (n.right, dr, n.left, dl) };
+            let (near, near_d, far, far_d) = if dl <= dr {
+                (n.left, dl, n.right, dr)
+            } else {
+                (n.right, dr, n.left, dl)
+            };
             // Push-time guard AND the Day-4 capacity guard. Far first, near last.
             if far_d < best_sq && sp < BVH_STACK {
                 stack[sp] = far;
@@ -280,7 +293,11 @@ pub fn mesh_query_point_at(
 #[inline(always)]
 pub fn deform_at(i: usize, rest: &[Vec3], phase: f32, amp: f32) -> Vec3 {
     let p = rest[i];
-    Vec3::new(p.x, p.y + amp * math::sin(p.x) * math::cos(p.z) * math::sin(phase), p.z)
+    Vec3::new(
+        p.x,
+        p.y + amp * math::sin(p.x) * math::cos(p.z) * math::sin(phase),
+        p.z,
+    )
 }
 
 /// Coulomb-style contact friction coefficient. Without friction the pushout
@@ -362,8 +379,15 @@ pub fn sim_particle_at(
         let v_t = v_out - v_n;
         let t_speed = v_t.length();
         let drop = FRICTION_MU * 9.8 * dt;
-        let v_t = if t_speed > drop { v_t * ((t_speed - drop) / t_speed) } else { Vec3::ZERO };
+        let v_t = if t_speed > drop {
+            v_t * ((t_speed - drop) / t_speed)
+        } else {
+            Vec3::ZERO
+        };
         v_out = v_n + v_t;
     }
-    Particle { pos: xpred, vel: v_out }
+    Particle {
+        pos: xpred,
+        vel: v_out,
+    }
 }

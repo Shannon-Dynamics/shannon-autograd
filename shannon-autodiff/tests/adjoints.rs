@@ -22,7 +22,10 @@ impl Lcg {
         Self(seed)
     }
     fn next_f32(&mut self) -> f32 {
-        self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        self.0 = self
+            .0
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
         ((self.0 >> 40) & 0x00FF_FFFF) as f32 / 16_777_216.0
     }
     /// Uniform in [lo, hi).
@@ -64,11 +67,29 @@ fn adjoint_01_add() {
     let a: Vec<f32> = (0..N).map(|_| rng.range(-2.0, 2.0)).collect();
     let b: Vec<f32> = (0..N).map(|_| rng.range(-2.0, 2.0)).collect();
     let ones = vec![1.0f32; N];
-    let ga = analytic_f32(N, |s| (0..N).for_each(|i| adj_add_at(i, &ones, s, &HostGradF32Null)));
-    let gb = analytic_f32(N, |s| (0..N).for_each(|i| adj_add_at(i, &ones, &HostGradF32Null, s)));
+    let ga = analytic_f32(N, |s| {
+        (0..N).for_each(|i| adj_add_at(i, &ones, s, &HostGradF32Null))
+    });
+    let gb = analytic_f32(N, |s| {
+        (0..N).for_each(|i| adj_add_at(i, &ones, &HostGradF32Null, s))
+    });
     // f(a) = Σ (aᵢ + bᵢ) with b fixed, then symmetrically for b.
-    gradcheck(|v| v.iter().zip(&b).map(|(x, y)| x + y).sum(), &a, &ga, EPS_FD, TOL).unwrap();
-    gradcheck(|v| a.iter().zip(v).map(|(x, y)| x + y).sum(), &b, &gb, EPS_FD, TOL).unwrap();
+    gradcheck(
+        |v| v.iter().zip(&b).map(|(x, y)| x + y).sum(),
+        &a,
+        &ga,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
+    gradcheck(
+        |v| a.iter().zip(v).map(|(x, y)| x + y).sum(),
+        &b,
+        &gb,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -77,10 +98,28 @@ fn adjoint_02_sub() {
     let a: Vec<f32> = (0..N).map(|_| rng.range(-2.0, 2.0)).collect();
     let b: Vec<f32> = (0..N).map(|_| rng.range(-2.0, 2.0)).collect();
     let ones = vec![1.0f32; N];
-    let ga = analytic_f32(N, |s| (0..N).for_each(|i| adj_sub_at(i, &ones, s, &HostGradF32Null)));
-    let gb = analytic_f32(N, |s| (0..N).for_each(|i| adj_sub_at(i, &ones, &HostGradF32Null, s)));
-    gradcheck(|v| v.iter().zip(&b).map(|(x, y)| x - y).sum(), &a, &ga, EPS_FD, TOL).unwrap();
-    gradcheck(|v| a.iter().zip(v).map(|(x, y)| x - y).sum(), &b, &gb, EPS_FD, TOL).unwrap();
+    let ga = analytic_f32(N, |s| {
+        (0..N).for_each(|i| adj_sub_at(i, &ones, s, &HostGradF32Null))
+    });
+    let gb = analytic_f32(N, |s| {
+        (0..N).for_each(|i| adj_sub_at(i, &ones, &HostGradF32Null, s))
+    });
+    gradcheck(
+        |v| v.iter().zip(&b).map(|(x, y)| x - y).sum(),
+        &a,
+        &ga,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
+    gradcheck(
+        |v| a.iter().zip(v).map(|(x, y)| x - y).sum(),
+        &b,
+        &gb,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -89,12 +128,28 @@ fn adjoint_03_mul() {
     let a: Vec<f32> = (0..N).map(|_| rng.range(-2.0, 2.0)).collect();
     let b: Vec<f32> = (0..N).map(|_| rng.range(-2.0, 2.0)).collect();
     let ones = vec![1.0f32; N];
-    let ga =
-        analytic_f32(N, |s| (0..N).for_each(|i| adj_mul_at(i, &a, &b, &ones, s, &HostGradF32Null)));
-    let gb =
-        analytic_f32(N, |s| (0..N).for_each(|i| adj_mul_at(i, &a, &b, &ones, &HostGradF32Null, s)));
-    gradcheck(|v| v.iter().zip(&b).map(|(x, y)| x * y).sum(), &a, &ga, EPS_FD, TOL).unwrap();
-    gradcheck(|v| a.iter().zip(v).map(|(x, y)| x * y).sum(), &b, &gb, EPS_FD, TOL).unwrap();
+    let ga = analytic_f32(N, |s| {
+        (0..N).for_each(|i| adj_mul_at(i, &a, &b, &ones, s, &HostGradF32Null))
+    });
+    let gb = analytic_f32(N, |s| {
+        (0..N).for_each(|i| adj_mul_at(i, &a, &b, &ones, &HostGradF32Null, s))
+    });
+    gradcheck(
+        |v| v.iter().zip(&b).map(|(x, y)| x * y).sum(),
+        &a,
+        &ga,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
+    gradcheck(
+        |v| a.iter().zip(v).map(|(x, y)| x * y).sum(),
+        &b,
+        &gb,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
 }
 
 #[test]
@@ -111,8 +166,22 @@ fn adjoint_04_div_threads_forward_output() {
     let gb = analytic_f32(N, |s| {
         (0..N).for_each(|i| adj_div_at(i, &b, &y, &ones, &HostGradF32Null, s))
     });
-    gradcheck(|v| v.iter().zip(&b).map(|(x, y)| x / y).sum(), &a, &ga, EPS_FD, TOL).unwrap();
-    gradcheck(|v| a.iter().zip(v).map(|(x, y)| x / y).sum(), &b, &gb, EPS_FD, TOL).unwrap();
+    gradcheck(
+        |v| v.iter().zip(&b).map(|(x, y)| x / y).sum(),
+        &a,
+        &ga,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
+    gradcheck(
+        |v| a.iter().zip(v).map(|(x, y)| x / y).sum(),
+        &b,
+        &gb,
+        EPS_FD,
+        TOL,
+    )
+    .unwrap();
 }
 
 /// The oracle must FAIL on the canonical adj_div bug (dropping the /b, i.e.
@@ -126,7 +195,14 @@ fn adjoint_04_div_wrong_variant_is_caught() {
     let y: Vec<f32> = (0..N).map(|i| a[i] / b[i]).collect();
     let wrong: Vec<f32> = (0..N).map(|i| -y[i]).collect(); // missing /b
     assert!(
-        gradcheck(|v| a.iter().zip(v).map(|(x, y)| x / y).sum(), &b, &wrong, EPS_FD, TOL).is_err(),
+        gradcheck(
+            |v| a.iter().zip(v).map(|(x, y)| x / y).sum(),
+            &b,
+            &wrong,
+            EPS_FD,
+            TOL
+        )
+        .is_err(),
         "gradcheck failed to catch the dropped-division adj_div bug"
     );
 }
@@ -175,7 +251,10 @@ fn adjoint_08_sqrt_at_zero_is_finite() {
     let ones = [1.0f32];
     let ga = analytic_f32(1, |s| adj_sqrt_at(0, &y, &ones, s));
     assert!(ga[0].is_finite());
-    assert_eq!(ga[0], 0.0, "subgradient convention: zero gradient at the singularity");
+    assert_eq!(
+        ga[0], 0.0,
+        "subgradient convention: zero gradient at the singularity"
+    );
 }
 
 #[test]
@@ -215,7 +294,11 @@ fn adjoint_10_length() {
     // sum. The gradcheck discipline (gradcheck.rs:33): sweep eps BEFORE
     // suspecting the adjoint — and at 1e-2 the check passes at 1e-3 relative.
     gradcheck(
-        |x| (0..N).map(|i| Vec3::new(x[i * 3], x[i * 3 + 1], x[i * 3 + 2]).length()).sum(),
+        |x| {
+            (0..N)
+                .map(|i| Vec3::new(x[i * 3], x[i * 3 + 1], x[i * 3 + 2]).length())
+                .sum()
+        },
         vec3s_as_f32s(&v),
         vec3s_as_f32s(&gv),
         1e-2,
@@ -276,8 +359,14 @@ fn adjoint_12_gather_scatter_accumulates_on_collision() {
     let idx = [0i32, 1, 1, 2];
     let x = [0.10f32, 0.20, 0.30];
     let adj_y = [1.0f32, 2.0, 3.0, 4.0];
-    let gx = analytic_f32(3, |s| (0..idx.len()).for_each(|i| adj_gather_at(i, &idx, &adj_y, s)));
-    assert_eq!(gx, vec![1.0, 5.0, 4.0], "collided slot must hold the SUM (2+3)");
+    let gx = analytic_f32(3, |s| {
+        (0..idx.len()).for_each(|i| adj_gather_at(i, &idx, &adj_y, s))
+    });
+    assert_eq!(
+        gx,
+        vec![1.0, 5.0, 4.0],
+        "collided slot must hold the SUM (2+3)"
+    );
     // And the FD cross-check of the same structure:
     let idx2 = idx;
     let ay = adj_y;
@@ -315,7 +404,9 @@ fn loss_adj_l2_matches_fd() {
     let x: Vec<Vec3> = (0..8).map(|_| rng.vec3(-1.0, 1.0)).collect();
     let t: Vec<Vec3> = (0..8).map(|_| rng.vec3(-1.0, 1.0)).collect();
     let adj_loss = [1.0f32];
-    let gx = analytic_vec3(8, |s| (0..8).for_each(|i| adj_l2_at(i, &x, &t, &adj_loss, s)));
+    let gx = analytic_vec3(8, |s| {
+        (0..8).for_each(|i| adj_l2_at(i, &x, &t, &adj_loss, s))
+    });
     let t2 = t.clone();
     gradcheck(
         |v| {
@@ -340,7 +431,12 @@ fn loss_adj_chamfer_ab_matches_fd() {
     let mut rng = Lcg::new(55);
     let src: Vec<Vec3> = (0..6).map(|_| rng.vec3(-0.5, 1.5)).collect();
     let corr: Vec<MeshQuery> = (0i32..6)
-        .map(|i| MeshQuery { face: i % 4, u: 0.3, v: 0.4, dist: 0.0 })
+        .map(|i| MeshQuery {
+            face: i % 4,
+            u: 0.3,
+            v: 0.4,
+            dist: 0.0,
+        })
         .collect();
     let adj_loss = [1.0f32];
     let gs = analytic_vec3(6, |s| {
@@ -374,7 +470,12 @@ fn loss_adj_chamfer_ba_matches_fd() {
     let mut rng = Lcg::new(56);
     let tverts: Vec<Vec3> = (0..6).map(|_| rng.vec3(-0.5, 1.5)).collect();
     let corr: Vec<MeshQuery> = (0i32..6)
-        .map(|i| MeshQuery { face: i % 3, u: 0.25, v: 0.5, dist: 0.0 })
+        .map(|i| MeshQuery {
+            face: i % 3,
+            u: 0.25,
+            v: 0.5,
+            dist: 0.0,
+        })
         .collect();
     let adj_loss = [1.0f32];
     let gp = analytic_vec3(spoints.len(), |s| {
@@ -384,8 +485,9 @@ fn loss_adj_chamfer_ba_matches_fd() {
     let n_pts = spoints.len();
     gradcheck(
         |v| {
-            let pts: Vec<Vec3> =
-                (0..n_pts).map(|k| Vec3::new(v[k * 3], v[k * 3 + 1], v[k * 3 + 2])).collect();
+            let pts: Vec<Vec3> = (0..n_pts)
+                .map(|k| Vec3::new(v[k * 3], v[k * 3 + 1], v[k * 3 + 2]))
+                .collect();
             (0..6)
                 .map(|i| {
                     let q = c[i];

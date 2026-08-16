@@ -93,6 +93,7 @@ shannon_core::shannon_gpu_kernels! {
         // Consequence the host carries: loss and every grad buffer must be
         // zeroed each iteration (ops::begin_iteration).
 
+
         /// ADJOINT of sin_map: ā[i] += ȳ[i]·cos(a[i]).
         #[kernel]
         pub fn adj_sin_map(a: &[f32], adj_y: &[f32], adj_a: &[f32]) {
@@ -372,3 +373,23 @@ shannon_core::shannon_gpu_kernels! {
         }
     }
 }
+
+// This crate's cached PTX-module accessor: `pub fn module(&Device) -> …`.
+// Same call every kernel crate (first- or third-party) makes; the embedded
+// bundle is keyed by this crate's package name.
+shannon_rt::define_module_cache!();
+
+/// First-party `launch!` — `shannon_rt::launch_in!` bound to THIS crate's
+/// module cache, so demo call sites keep the original one-argument syntax:
+/// `launch!(affine, dim = n, (&a, scale, bias, &mut y))?`.
+#[macro_export]
+macro_rules! launch {
+    ($kernel:ident, dim = $n:expr, ($($arg:expr),* $(,)?)) => {
+        $crate::__shannon_rt::launch_in!($crate::module, $kernel, dim = $n, ($($arg),*))
+    };
+}
+
+// Macro plumbing — `launch!` reaches shannon-rt through `$crate::…` so
+// callers do not need shannon-rt's macros imported.
+#[doc(hidden)]
+pub use shannon_rt as __shannon_rt;

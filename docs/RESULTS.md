@@ -213,7 +213,7 @@ particle step. All binary predicates green on the acceptance run:
 Sim-loop cost note: the per-frame host refit (download 51 KB of points, reverse-loop
 refit, re-upload 0.5 MB of nodes) is a recorded design trade — exact
 device-consistency over speed. GPU refit (parent pointers + atomic arrival counters)
-is on the backlog (BACKLOG.md #5).
+is on the roadmap ([ROADMAP.md](../ROADMAP.md) Phase 3).
 
 ## Differentiable shape fitting (shape_fit acceptance run)
 
@@ -282,7 +282,7 @@ Cost note: the full acceptance run — chain check + 200 SGD + 200 Adam iteratio
 including 400 correspondence queries, 200 host refits, and the ~15 KB/iteration
 gradient/parameter round trip to the host optimizer — is **1.08 s wall**
 (~2.7 ms/iteration for stage 2). The GPU `adam_step` kernel and ambient-recording
-tape are backlog items (BACKLOG.md #1, #6); at this size neither is the bottleneck.
+tape are roadmap items ([ROADMAP.md](../ROADMAP.md) Phases 2 and 3); at this size neither is the bottleneck.
 
 ## Prior measurements (context)
 

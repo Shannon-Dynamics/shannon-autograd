@@ -44,11 +44,23 @@ pub struct Adam {
 impl Adam {
     /// `n` = flat parameter count (3 × vertex count for Vec3 buffers).
     pub fn new(n: usize, lr: f32) -> Self {
-        Self { lr, beta1: 0.9, beta2: 0.999, eps: 1.0e-8, t: 0, m: vec![0.0; n], v: vec![0.0; n] }
+        Self {
+            lr,
+            beta1: 0.9,
+            beta2: 0.999,
+            eps: 1.0e-8,
+            t: 0,
+            m: vec![0.0; n],
+            v: vec![0.0; n],
+        }
     }
 
     pub fn step(&mut self, params: &mut [f32], grads: &[f32]) {
-        assert_eq!(params.len(), self.m.len(), "Adam sized for a different parameter count");
+        assert_eq!(
+            params.len(),
+            self.m.len(),
+            "Adam sized for a different parameter count"
+        );
         assert_eq!(params.len(), grads.len());
         self.t += 1;
         let bc1 = 1.0 - self.beta1.powi(self.t);

@@ -19,12 +19,20 @@ pub struct ScopedTimer {
 
 impl ScopedTimer {
     pub fn new(name: &'static str) -> Self {
-        Self { name, start: Instant::now(), print_on_drop: true }
+        Self {
+            name,
+            start: Instant::now(),
+            print_on_drop: true,
+        }
     }
 
     /// For benchmark loops that aggregate externally — never prints.
     pub fn quiet(name: &'static str) -> Self {
-        Self { name, start: Instant::now(), print_on_drop: false }
+        Self {
+            name,
+            start: Instant::now(),
+            print_on_drop: false,
+        }
     }
 
     pub fn name(&self) -> &'static str {

@@ -6,7 +6,8 @@
 //! Chosen because the correct answer is checkable by inspection.
 
 use anyhow::Result;
-use shannon_rt::{Array, launch};
+use shannon_kernels::launch;
+use shannon_rt::Array;
 
 const N: usize = 1024;
 const SCALE: f32 = 2.0;
@@ -27,8 +28,14 @@ fn main() -> Result<()> {
 
     for i in 0..N {
         let expected = a_host[i] * SCALE + BIAS;
-        assert!((y_gpu[i] - expected).abs() <= 1e-6, "GPU forward mismatch at {i}");
-        assert!((y_cpu[i] - expected).abs() <= 1e-6, "CPU forward mismatch at {i}");
+        assert!(
+            (y_gpu[i] - expected).abs() <= 1e-6,
+            "GPU forward mismatch at {i}"
+        );
+        assert!(
+            (y_cpu[i] - expected).abs() <= 1e-6,
+            "CPU forward mismatch at {i}"
+        );
     }
     println!("✓ forward: GPU == CPU == analytic  ({N} elements)");
 
@@ -42,8 +49,14 @@ fn main() -> Result<()> {
     shannon_cpu::adj_affine(&vec![1.0f32; N], SCALE, &mut g_cpu);
 
     for i in 0..N {
-        assert!((g_gpu[i] - SCALE).abs() <= 1e-6, "GPU gradient mismatch at {i}");
-        assert!((g_cpu[i] - SCALE).abs() <= 1e-6, "CPU gradient mismatch at {i}");
+        assert!(
+            (g_gpu[i] - SCALE).abs() <= 1e-6,
+            "GPU gradient mismatch at {i}"
+        );
+        assert!(
+            (g_cpu[i] - SCALE).abs() <= 1e-6,
+            "CPU gradient mismatch at {i}"
+        );
     }
     println!("✓ backward: GPU == CPU == {SCALE} (analytic)");
 

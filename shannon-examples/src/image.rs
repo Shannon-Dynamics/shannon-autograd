@@ -101,11 +101,18 @@ impl Crc32 {
         for (n, slot) in table.iter_mut().enumerate() {
             let mut c = n as u32;
             for _ in 0..8 {
-                c = if c & 1 != 0 { 0xEDB8_8320 ^ (c >> 1) } else { c >> 1 };
+                c = if c & 1 != 0 {
+                    0xEDB8_8320 ^ (c >> 1)
+                } else {
+                    c >> 1
+                };
             }
             *slot = c;
         }
-        Self { table, value: 0xFFFF_FFFF }
+        Self {
+            table,
+            value: 0xFFFF_FFFF,
+        }
     }
     fn update(&mut self, data: &[u8]) {
         for &b in data {
